@@ -336,7 +336,7 @@
       <span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:22px"><span style="width:8px;height:8px;border-radius:50%;background:#5fd08a;box-shadow:0 0 10px #5fd08a;animation:pulse 2.4s ease-in-out infinite;display:inline-block"></span>Available for projects</span>
       <h2 style="font-size:clamp(2.2rem,6vw,4rem);line-height:1.02;letter-spacing:-.02em;font-weight:500;margin-bottom:14px">Have a <span style="font-family: 'Instrument Serif',serif; font-style: italic; font-weight: 400; color: #E3FFD2">complex idea?</span></h2>
       <div style="margin-bottom:34px"><span style="display: inline-flex; align-items: center; gap: 7px; font-family: ui-monospace,Menlo,monospace; font-size: 10px; letter-spacing: .14em; text-transform: lowercase; color: var(--muted); border: 1px dashed var(--stroke2); border-radius: 999px; padding: 4px 11px">I'm always interested in ideas that are hard to explain and easier to feel.</span></div>
-      <a href="mailto:bibifnaaz37@gmail.com" class="cta-ring" style="display:inline-flex;align-items:center;gap:10px;border-radius:999px;background:var(--text);color:var(--bg);font-size:15px;font-weight:500;padding:16px 30px;transition:transform .25s var(--ease)"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.1em"><span class="__cf_email__" data-cfemail="690b000b000f070808135a5e290e04080005470a0604">Get in touch </span></span> <span>↗</span></a>
+      <a href="/cdn-cgi/l/email-protection#d7b5beb5beb1b9b6b6ade4e097b0bab6bebbf9b4b8ba" class="cta-ring" style="display:inline-flex;align-items:center;gap:10px;border-radius:999px;background:var(--text);color:var(--bg);font-size:15px;font-weight:500;padding:16px 30px;transition:transform .25s var(--ease)"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.1em"><span class="__cf_email__" data-cfemail="9bf9f2f9f2fdf5fafae1a8acdbfcf6faf2f7b5f8f4f6">[email&#160;protected]</span></span> <span>↗</span></a>
     </div>
 
   </section>
@@ -380,6 +380,7 @@ class Component extends DCLogic {
   initHeroShader() {
     if (typeof THREE === 'undefined') return;
     if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    if (window.innerWidth < 1024) return; // too heavy for mobile/tablet GPUs
     const container = this.q('#hero-shader');
     if (!container) return;
     const W = () => window.innerWidth;
@@ -389,7 +390,7 @@ class Component extends DCLogic {
     camera.position.z = 120;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(W(), H());
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     const cvs = renderer.domElement;
     cvs.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
     container.appendChild(cvs);
@@ -649,6 +650,21 @@ class Component extends DCLogic {
         if (video) video.pause();
       });
     });
+    // Mobile: load + play videos only when visible, pause when off-screen
+    if (isMobile || 'ontouchstart' in window) {
+      const vidIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          const vid = e.target;
+          if (e.isIntersecting) {
+            if (!vid.src && vid.dataset.src) vid.src = vid.dataset.src;
+            vid.play().catch(() => {});
+          } else {
+            vid.pause();
+          }
+        });
+      }, { threshold: 0.25 });
+      this.qa('.card-video').forEach((v) => vidIO.observe(v));
+    }
 
 
 
