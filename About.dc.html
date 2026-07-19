@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 56"><rect width="80" height="56" fill="#0a0a0a"/><circle cx="40" cy="28" r="16" fill="none" stroke="#89AACC" stroke-width="1.5"/><circle cx="40" cy="28" r="8" fill="#4E85BF" opacity=".7"/><text x="40" y="52" font-family="serif" font-size="6" fill="#89AACC" text-anchor="middle">PORTFOLIO</text></svg></template>
+<x-dc>
+<helmet>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0a; --surface:#141414; --surface2:#181818;
+    --text:#f5f5f5; --muted:#8a8a8a; --stroke:#1f1f1f; --stroke2:#333;
+    --accent1:#4FB6A5; --accent2:#4FB6A5;
+    --grad:linear-gradient(90deg,#4FB6A5 0%,#4FB6A5 100%);
+    --ease:cubic-bezier(.25,.1,.25,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:rgba(137,170,204,.3)}
+  a{color:var(--text);text-decoration:none}
+  a:hover{color:#fff}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</helmet>
+
+<div style="position:relative;width:100%;overflow:hidden">
+  <canvas id="aboutBg" style="position:fixed;inset:0;width:100%;height:100%;opacity:.3;pointer-events:none;z-index:-1;transform:translateY(-12%)"></canvas>
+
+  <!-- ================= NAVBAR ================= -->
+  <div style="position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:center;padding:clamp(14px,2.5vw,24px) 16px;pointer-events:none">
+    <nav id="navPill" style="pointer-events:auto;display:inline-flex;align-items:center;gap:2px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(20,20,20,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:7px;transition:box-shadow .4s var(--ease),background .4s var(--ease);max-width:calc(100vw - 32px)">
+      <a href="./Homepage.dc.html" title="[PLACEHOLDER — owner's initials]" style="position:relative;width:34px;height:34px;flex:0 0 auto;border-radius:999px;display:grid;place-items:center;margin-right:4px">
+        <span style="position:absolute;inset:0;border-radius:999px;background:var(--grad);padding:1.5px"></span>
+        <span style="position: relative; width: 100%; height: 100%; border-radius: 999px; background: url(&quot;./mylogo-mrpxi6jx-9xxd.jpeg&quot;) center / cover no-repeat; display: grid; place-items: center; font-family: 'Instrument Serif',serif; font-style: italic; font-size: 12px; color: var(--muted)">··</span>
+      </a>
+      <span style="width:1px;height:20px;background:var(--stroke);margin:0 4px"></span>
+      <div style="display:flex;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none">
+        <a id="homeNavLink" href="./Homepage.dc.html" style="white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 14px;color:var(--muted);transition:all .25s var(--ease)">Home</a>
+        <a href="./Experiences.dc.html" style="white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 14px;color:var(--muted);transition:all .25s var(--ease)">Experiences</a>
+        <a href="./About.dc.html" style="white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 14px;color:var(--text);background:rgba(255,255,255,.06);transition:all .25s var(--ease)">About</a>
+      </div>
+      <span style="width:1px;height:20px;background:var(--stroke);margin:0 4px"></span>
+      <a href="./Contact.dc.html" style="position:relative;white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 15px;display:inline-flex;align-items:center;gap:6px;color:var(--text);background:rgba(255,255,255,.06);transition:all .25s var(--ease)">Contact <span style="font-size:11px">↗</span></a>
+    </nav>
+  </div>
+
+  <!-- ================= HEADER ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:clamp(140px,17vw,210px) 20px clamp(50px,8vw,70px)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(22px,4vw,30px)">About</div>
+    <h1 data-reveal="" style="opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease) .06s,transform .9s var(--ease) .06s;font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:clamp(2.6rem,8vw,5rem);line-height:1.02;letter-spacing:-.02em">
+How I Think
+    </h1>
+  </section>
+
+  <!-- ================= INTRO ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:0 20px clamp(70px,10vw,110px)">
+    <p data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);font-size:clamp(1.3rem,3vw,1.9rem);line-height:1.5;letter-spacing:-.01em;color:rgba(245,245,245,.92)">I'm <span style="font-family: ui-monospace,Menlo,monospace; font-style: normal; font-size: .5em; letter-spacing: .06em; color: #D7FFB0; border: 1px dashed var(--stroke2); border-radius: 999px; padding: 3px 10px; vertical-align: middle">Fatima</span>, a Creative Technologist and Interactive Experience Designer. I build things that let people feel their way into ideas that are usually only explained to them — through interaction, motion, and systems that respond.</p>
+  </section>
+
+  <!-- ================= PHILOSOPHY ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:0 20px clamp(60px,9vw,90px);border-top:1px solid var(--stroke)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);padding-top:clamp(60px,9vw,90px);display:grid;grid-template-columns:minmax(140px,180px) 1fr;gap:clamp(20px,4vw,40px)">
+      <div style="font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: #8A8A8A; padding-top: 4px">Philosophy</div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <p style="font-size:clamp(1.1rem,2.2vw,1.4rem);line-height:1.6;letter-spacing:-.01em;color:rgba(245,245,245,.92)">I think most complex ideas aren't hard because they're complicated — they're hard because they're only ever described, never experienced. I'd rather build something you can move through than write another paragraph about it. Interaction, used carefully, does the explaining for me.</p>
+        <p style="font-family: 'Instrument Serif',serif; font-style: italic; font-size: clamp(1.1rem,2vw,1.3rem); line-height: 1.5; color: #B7A2A2">Not every idea needs motion. The ones that do get it; the rest stay quiet.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HOW I APPROACH ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:clamp(60px,9vw,90px) 20px 0;border-top:1px solid var(--stroke)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);display:grid;grid-template-columns:minmax(140px,180px) 1fr;gap:clamp(20px,4vw,40px)">
+      <div style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding-top:4px">How I Approach a Project</div>
+      <p style="font-size:clamp(1rem,1.8vw,1.15rem);line-height:1.65;color:rgba(245,245,245,.85)">I don't start with a finished concept — I figure out the idea as I build. A project usually begins as a small technical question rather than a plan: what happens if particles chase gravity toward a cursor? What does a genome look like if you can drag its traits mid-simulation? The actual idea reveals itself once something is on screen and responding. Prototyping isn't a phase before the real work — it is the real work.</p>
+    </div>
+  </section>
+
+  <!-- ================= CREATIVE INTERESTS ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:clamp(60px,9vw,90px) 20px 0;border-top:1px solid var(--stroke)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);display:grid;grid-template-columns:minmax(140px,180px) 1fr;gap:clamp(20px,4vw,40px)">
+      <div style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding-top:4px">What I'm Drawn To</div>
+      <p style="font-size:clamp(1rem,1.8vw,1.15rem);line-height:1.65;color:rgba(245,245,245,.85)">I'm drawn to work at the edge of physics, biology, and systems that usually stay invisible — gravity, evolution, chemical signaling, the mechanics of thought itself. Lately that's meant simulating things most people only ever see explained in a textbook: a black hole's lensing, a genome under selection pressure, a flower's chemical warning to its neighbors.</p>
+    </div>
+  </section>
+
+  <!-- ================= HOW I LEARN ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:clamp(60px,9vw,90px) 20px 0;border-top:1px solid var(--stroke)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);display:grid;grid-template-columns:minmax(140px,180px) 1fr;gap:clamp(20px,4vw,40px)">
+      <div style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding-top:4px">How I Learn</div>
+      <p style="font-size:clamp(1rem,1.8vw,1.15rem);line-height:1.65;color:rgba(245,245,245,.85)">I follow a curiosity until it becomes a project. If I don't understand how something works — gravitational lensing, DNA base pairing, how a neural net actually propagates a signal — building a working version of it is how I get there. The understanding and the finished piece usually arrive at the same time.</p>
+    </div>
+  </section>
+
+  <!-- ================= SKILLS ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:clamp(60px,9vw,90px) 20px 0;border-top:1px solid var(--stroke)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);display:grid;grid-template-columns:minmax(140px,180px) 1fr;gap:clamp(20px,4vw,40px)">
+      <div style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding-top:4px">What I Do</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));column-gap:24px;row-gap:14px">
+        <sc-for list="{{ skills }}" as="s" hint-placeholder-count="6">
+          <div style="display:flex;align-items:baseline;gap:12px;padding:14px 0;border-bottom:1px solid var(--stroke)">
+            <span style="font-family:'Instrument Serif',serif;font-style:italic;font-size:13px;color:var(--muted)">{{ s.n }}</span>
+            <span style="font-size:clamp(1rem,1.6vw,1.1rem);color:rgba(245,245,245,.9)">{{ s.name }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TOOLS & STACK ================= -->
+  <section style="max-width:760px;margin:0 auto;padding:clamp(60px,9vw,90px) 20px 0;border-top:1px solid var(--stroke)">
+    <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);display:grid;grid-template-columns:minmax(140px,180px) 1fr;gap:clamp(20px,4vw,40px)">
+      <div style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding-top:4px">Tools &amp; Stack</div>
+      <div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          <sc-for list="{{ tools }}" as="tool" hint-placeholder-count="8">
+            <span style="font-size:11.5px;color:var(--text);border:1px solid var(--stroke2);border-radius:999px;padding:6px 14px">{{ tool.name }}</span>
+          </sc-for>
+        </div>
+        <p style="font-size:13px;color:var(--muted)">The stack changes when the work calls for it. These are the tools I reach for most.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CTA / FOOTER ================= -->
+  <section style="position:relative;padding:clamp(90px,13vw,140px) 20px clamp(28px,4vw,48px)">
+    <div data-reveal="" style="opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:640px;margin:0 auto;text-align:center">
+      <h2 style="font-size:clamp(1.9rem,5vw,3rem);line-height:1.08;letter-spacing:-.02em;font-weight:500;margin-bottom:16px">Have <span style="font-family:'Instrument Serif',serif;font-style:italic;font-weight:400">something complex worth exploring?</span></h2>
+      <p style="font-size:clamp(.95rem,1.6vw,1.05rem);color:var(--muted);margin-bottom:30px">I'm always interested in ideas that are hard to explain and easier to feel.</p>
+      <a href="./Contact.dc.html" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:14px;font-weight:500;padding:14px 28px;transition:transform .25s var(--ease)">Get in touch <span style="font-size:12px">↗</span></a>
+    </div>
+
+  </section>
+
+  <dc-import name="Footer" active-page="about" hint-size="100%,220px"></dc-import>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    requestAnimationFrame(() => { this.initBg(); this.init(); });
+  }
+
+  q(sel) { return document.querySelector(sel); }
+  qa(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+  initBg() {
+    const canvas = document.getElementById('aboutBg');
+    if (!canvas || !window.THREE) return;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 2000);
+    camera.position.set(0, 90, 220);
+    camera.lookAt(0, -10, 0);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    const gc = document.createElement('canvas'); gc.width = 128; gc.height = 128;
+    const gctx = gc.getContext('2d');
+    const g = gctx.createRadialGradient(64,64,0,64,64,64);
+    g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.08,'rgba(200,240,255,1)');
+    g.addColorStop(0.25,'rgba(80,180,255,0.8)'); g.addColorStop(0.5,'rgba(30,100,255,0.3)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    gctx.fillStyle = g; gctx.fillRect(0,0,128,128);
+    const glowTex = new THREE.CanvasTexture(gc);
+    const COUNT = 35000;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(COUNT*3), col = new Float32Array(COUNT*3);
+    const px = new Float32Array(COUNT), pz = new Float32Array(COUNT), ph = new Float32Array(COUNT);
+    for (let i = 0; i < COUNT; i++) { px[i]=(Math.random()-.5)*320; pz[i]=(Math.random()-.5)*320; ph[i]=Math.random()*Math.PI*2; }
+    const cObj = new THREE.Color();
+    const waveColor = (norm) => {
+      const n = Math.max(-1,Math.min(1,norm)), t = (n+1)*0.5;
+      if (t<0.3) { const s=t/0.3; cObj.setRGB(0.02+s*0.08,0.05+s*0.25,0.5+s*0.4); }
+      else if (t<0.65) { const s=(t-0.3)/0.35; cObj.setRGB(0.10+s*0.10,0.30+s*0.60,0.90-s*0.10); }
+      else { const s=(t-0.65)/0.35; cObj.setRGB(0.20+s*0.80,0.90+s*0.10,0.80+s*0.20); }
+    };
+    const updateWave = (t) => {
+      for (let i = 0; i < COUNT; i++) {
+        const x=px[i],z=pz[i];
+        const y=Math.sin(x*.04+t*1.0+ph[i]*.2)*Math.cos(z*.035+t*.65)*28+Math.sin(x*.085+t*1.5)*11+Math.cos(z*.06+t*.85)*9;
+        pos[i*3]=x; pos[i*3+1]=y; pos[i*3+2]=z;
+        waveColor(y/48); col[i*3]=cObj.r; col[i*3+1]=cObj.g; col[i*3+2]=cObj.b;
+      }
+    };
+    updateWave(0);
+    geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(col,3));
+    const mat = new THREE.PointsMaterial({ size:3.0, vertexColors:true, map:glowTex, blending:THREE.AdditiveBlending, transparent:true, depthWrite:false, sizeAttenuation:true });
+    const mesh = new THREE.Points(geo, mat);
+    mesh.rotation.x = -0.38;
+    scene.add(mesh);
+    let t = 0;
+    const anim = () => { requestAnimationFrame(anim); t+=0.004; updateWave(t); geo.attributes.position.needsUpdate=true; geo.attributes.color.needsUpdate=true; mesh.rotation.y+=0.00008; renderer.render(scene,camera); };
+    anim();
+  }
+
+  init() {
+    const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    const revealEls = this.qa('[data-reveal]');
+    const show = (el) => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; };
+    if (reduce || !('IntersectionObserver' in window)) {
+      revealEls.forEach(show);
+    } else {
+      this._io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { show(e.target); this._io.unobserve(e.target); } });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      revealEls.forEach((el) => this._io.observe(el));
+      setTimeout(() => revealEls.forEach(show), 4000);
+    }
+
+    const homeLink = this.q('#homeNavLink');
+    if (homeLink) homeLink.addEventListener('click', () => sessionStorage.setItem('hp_skip_loader', '1'));
+    const navPill = this.q('#navPill');
+    window.addEventListener('scroll', () => {
+      if (navPill) navPill.style.boxShadow = window.scrollY > 80 ? '0 8px 30px rgba(0,0,0,.45)' : 'none';
+    }, { passive: true });
+  }
+
+  renderVals() {
+    const skillNames = ['Interaction Design', 'Creative Coding', 'AI & Systems Thinking', 'Product Thinking', 'Visual Storytelling', 'Interactive Simulation'];
+    const toolNames = ['React', 'Vite', 'TypeScript', 'Tailwind CSS', 'GSAP', 'Framer Motion', 'Three.js', 'React Router'];
+    return {
+      skills: skillNames.map((name, i) => ({ name, n: String(i + 1).padStart(2, '0') })),
+      tools: toolNames.map((name) => ({ name })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

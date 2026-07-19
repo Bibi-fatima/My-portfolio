@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 56"><rect width="80" height="56" fill="#0a0a0a"/><circle cx="40" cy="28" r="16" fill="none" stroke="#89AACC" stroke-width="1.5"/><circle cx="40" cy="28" r="8" fill="#4E85BF" opacity=".7"/><text x="40" y="52" font-family="serif" font-size="6" fill="#89AACC" text-anchor="middle">PORTFOLIO</text></svg></template>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+<script>window.__threeLoaded||(document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/scr'+'ipt>'),window.__threeLoaded=true)</script>
+<style>
+  :root{
+    --bg:#0a0a0a; --surface:#141414; --surface2:#181818;
+    --text:#f5f5f5; --muted:#8a8a8a; --stroke:#1f1f1f; --stroke2:#333;
+    --accent1:#4FB6A5; --accent2:#4FB6A5;
+    --grad:linear-gradient(90deg,#4FB6A5 0%,#4FB6A5 100%);
+    --ease:cubic-bezier(.25,.1,.25,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:rgba(137,170,204,.3)}
+  a{color:var(--text);text-decoration:none}
+  a:hover{color:#fff}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</helmet>
+
+<div style="position:relative;width:100%;min-height:100svh;display:flex;flex-direction:column;overflow:hidden">
+  <div id="contact-shader" style="position:fixed;inset:0;opacity:.70;pointer-events:none;z-index:0"></div>
+
+  <!-- ================= NAVBAR ================= -->
+  <div style="position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:center;padding:clamp(14px,2.5vw,24px) 16px;pointer-events:none">
+    <nav id="navPill" style="pointer-events:auto;display:inline-flex;align-items:center;gap:2px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(20,20,20,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:7px;transition:box-shadow .4s var(--ease),background .4s var(--ease);max-width:calc(100vw - 32px)">
+      <a href="./Homepage.dc.html" title="[PLACEHOLDER — owner's initials]" style="position:relative;width:34px;height:34px;flex:0 0 auto;border-radius:999px;display:grid;place-items:center;margin-right:4px">
+        <span style="position:absolute;inset:0;border-radius:999px;background:var(--grad);padding:1.5px"></span>
+        <span style="position: relative; width: 100%; height: 100%; border-radius: 999px; background: url(&quot;./mylogo-mrpy6r5g-855i.jpeg&quot;) center / cover no-repeat; display: grid; place-items: center; font-family: 'Instrument Serif',serif; font-style: italic; font-size: 12px; color: var(--muted)">··</span>
+      </a>
+      <span style="width:1px;height:20px;background:var(--stroke);margin:0 4px"></span>
+      <div style="display:flex;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none">
+        <a href="./Homepage.dc.html" id="homeNavLink" style="white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 14px;color:var(--muted);transition:all .25s var(--ease)">Home</a>
+        <a href="./Experiences.dc.html" style="white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 14px;color:var(--muted);transition:all .25s var(--ease)">Experiences</a>
+        <a href="./About.dc.html" style="white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 14px;color:var(--muted);transition:all .25s var(--ease)">About</a>
+      </div>
+      <span style="width:1px;height:20px;background:var(--stroke);margin:0 4px"></span>
+      <a href="./Contact.dc.html" style="position:relative;white-space:nowrap;font-size:clamp(12px,1.4vw,13.5px);border-radius:999px;padding:8px 15px;display:inline-flex;align-items:center;gap:6px;color:var(--text);background:rgba(255,255,255,.06);transition:all .25s var(--ease)">Contact <span style="font-size:11px">↗</span></a>
+    </nav>
+  </div>
+
+  <!-- ================= MAIN ================= -->
+  <section style="position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;padding:clamp(140px,16vw,200px) 20px clamp(60px,9vw,90px)">
+    <div data-reveal="" style="opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:600px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center">
+
+      <div style="font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(20px,4vw,30px)">Contact</div>
+
+      <h1 style="font-family: 'Instrument Serif',serif; font-style: italic; font-weight: 400; font-size: clamp(2.4rem,7vw,4.2rem); line-height: 1.05; letter-spacing: -.02em; margin-bottom: 22px; color: #E0E1FA; width: 692px">Have an idea worth building?</h1>
+
+      <p style="font-size: clamp(1rem,1.8vw,1.15rem); line-height: 1.6; color: #FFFFFF; max-width: 480px; margin-bottom: clamp(36px,6vw,52px)">If you have a complex idea that's hard to explain, I'm interested in talking about how it could become something people can actually interact with.</p>
+
+      <a href="/cdn-cgi/l/email-protection#89ebe0ebe0efe7e8e8f3babec9eee4e8e0e5a7eae6e4" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:10px;border-radius:999px;background:var(--text);color:var(--bg);font-size:15px;font-weight:500;padding:16px 30px;transition:transform .25s var(--ease);margin-bottom:clamp(28px,4vw,36px)"><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.06em">Send an email</span> <span>↗</span></a>
+
+      
+
+      
+
+      <div style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)">
+        
+        
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= CLOSING LINE ================= -->
+  <div style="position:relative;z-index:1;text-align:center;padding:0 20px clamp(28px,4vw,40px)">
+    
+  </div>
+
+  <dc-import name="Footer" active-page="contact" hint-size="100%,220px"></dc-import>
+
+</div>
+
+</x-dc>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    requestAnimationFrame(() => this.init());
+  }
+
+  q(sel) { return document.querySelector(sel); }
+  qa(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+  init() {
+    const homeLink = this.q('#homeNavLink');
+    if (homeLink) homeLink.addEventListener('click', () => sessionStorage.setItem('hp_skip_loader', '1'));
+    this.initContactShader();
+    const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    const revealEls = this.qa('[data-reveal]');
+    const show = (el) => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; };
+    if (reduce || !('IntersectionObserver' in window)) {
+      revealEls.forEach(show);
+    } else {
+      this._io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { show(e.target); this._io.unobserve(e.target); } });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      revealEls.forEach((el) => this._io.observe(el));
+      setTimeout(() => revealEls.forEach(show), 4000);
+    }
+
+    const navPill = this.q('#navPill');
+    window.addEventListener('scroll', () => {
+      if (navPill) navPill.style.boxShadow = window.scrollY > 80 ? '0 8px 30px rgba(0,0,0,.45)' : 'none';
+    }, { passive: true });
+  }
+
+  initContactShader() {
+    if (typeof THREE === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const container = document.querySelector('#contact-shader');
+    if (!container) return;
+    const W = () => window.innerWidth, H = () => window.innerHeight;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, W()/H(), 0.1, 1000);
+    camera.position.z = 210;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(W(), H());
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const cvs = renderer.domElement;
+    cvs.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
+    container.appendChild(cvs);
+    window.addEventListener('resize', () => { camera.aspect = W()/H(); camera.updateProjectionMatrix(); renderer.setSize(W(), H()); }, { passive: true });
+    function getGlow() {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(32,32,0,32,32,32);
+      g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.15,'rgba(255,255,255,0.8)'); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,64,64);
+      return new THREE.CanvasTexture(c);
+    }
+    const count = 35000;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count*3), col = new Float32Array(count*3);
+    const tPos = new Float32Array(count*3), tCol = new Float32Array(count*3);
+    const cObj = new THREE.Color();
+    const RINGS = 8, PPR = 12;
+    const perPetal = Math.floor(count * 0.92 / (RINGS * PPR));
+    let idx = 0;
+    for (let ring = 0; ring < RINGS; ring++) {
+      const rf = ring / (RINGS - 1);
+      const ringR = 12 + rf * 72, petalL = 10 + rf * 28, tilt = Math.PI * 0.42 * (1 - rf);
+      for (let p = 0; p < PPR; p++) {
+        const base = (p / PPR) * Math.PI * 2 + ring * (Math.PI / PPR);
+        for (let k = 0; k < perPetal && idx < count; k++, idx++) {
+          const t = Math.random(), hw = Math.sin(t * Math.PI) * petalL * 0.22;
+          const lx = ringR + t * petalL, ly = (Math.random() - 0.5) * hw;
+          const x = lx * Math.cos(base) - ly * Math.sin(base);
+          const y = lx * Math.sin(base) + ly * Math.cos(base);
+          const z = Math.sin(tilt) * t * petalL * 0.8 + (Math.random() - 0.5) * 3;
+          tPos[idx*3] = x; tPos[idx*3+1] = y; tPos[idx*3+2] = z;
+          cObj.setHSL(0.62 + rf * 0.08 + t * 0.06, 0.85 + t * 0.1, Math.min(0.38 + t * 0.38 + rf * 0.06, 0.82));
+          tCol[idx*3] = cObj.r; tCol[idx*3+1] = cObj.g; tCol[idx*3+2] = cObj.b;
+        }
+      }
+    }
+    while (idx < count) {
+      const a = Math.random() * Math.PI * 2, r = Math.random() * 10, z = (Math.random() - 0.5) * 12;
+      tPos[idx*3] = r*Math.cos(a); tPos[idx*3+1] = r*Math.sin(a); tPos[idx*3+2] = z;
+      cObj.setHSL(0.58, 1.0, 0.72);
+      tCol[idx*3] = cObj.r; tCol[idx*3+1] = cObj.g; tCol[idx*3+2] = cObj.b;
+      idx++;
+    }
+    for (let i = 0; i < count*3; i++) { pos[i] = tPos[i]*3; col[i] = tCol[i]; }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({ size: 2.2, vertexColors: true, map: getGlow(), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+    const sys = new THREE.Points(geo, mat);
+    scene.add(sys);
+    let time = 0;
+    const tick = () => {
+      if (!container.isConnected) return;
+      requestAnimationFrame(tick);
+      time += 0.008;
+      const p = geo.attributes.position.array;
+      for (let i = 0; i < count; i++) {
+        const breath = Math.sin(time + tPos[i*3] * 0.03 + tPos[i*3+1] * 0.03) * 0.12;
+        p[i*3]   += (tPos[i*3]   * (1 + breath) - p[i*3])   * 0.04;
+        p[i*3+1] += (tPos[i*3+1] * (1 + breath) - p[i*3+1]) * 0.04;
+        p[i*3+2] += (tPos[i*3+2] - p[i*3+2]) * 0.04;
+        col[i*3]   += (tCol[i*3]   - col[i*3])   * 0.05;
+        col[i*3+1] += (tCol[i*3+1] - col[i*3+1]) * 0.05;
+        col[i*3+2] += (tCol[i*3+2] - col[i*3+2]) * 0.05;
+      }
+      geo.attributes.position.needsUpdate = true;
+      geo.attributes.color.needsUpdate    = true;
+      sys.rotation.z += 0.0008;
+      sys.rotation.x += 0.0002;
+      renderer.render(scene, camera);
+    };
+    tick();
+  }
+
+  renderVals() {
+    return {
+      openEmail: (e) => { e.preventDefault(); window.open('mailto:bibifnaaz37@gmail.com'); },
+    };
+  }
+}
+
+</script>
+</body>
+</html>
