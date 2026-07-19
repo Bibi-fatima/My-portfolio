@@ -91,7 +91,7 @@
         <button data-filter="Creative Simulations" style="cursor:pointer;font:inherit;white-space:nowrap;font-size:12.5px;border-radius:999px;padding:8px 16px;color:var(--muted);background:transparent;border:1px solid var(--stroke2);transition:all .25s var(--ease)">Creative Simulations</button>
         <button data-filter="Human-centered Projects" style="cursor:pointer;font:inherit;white-space:nowrap;font-size:12.5px;border-radius:999px;padding:8px 16px;color:var(--muted);background:transparent;border:1px solid var(--stroke2);transition:all .25s var(--ease)">Human-centered Projects</button>
       </div>
-      <p style="font-size: 12px; color: var(--muted); font-style: italic">Every experience below is live and explorable. Select one to step inside it. Best explored on a laptop or tablet — these simulations are built for mouse and keyboard.</p>
+      <p style="font-size: 12px; color: var(--muted); font-style: italic">Every experience below is live and explorable. Select one to step inside it.</p>
     </div>
 
     <div id="cardGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:clamp(16px,2.5vw,24px)">
@@ -269,6 +269,7 @@ class Component extends DCLogic {
   }
 
   initSupernova() {
+    if (window.innerWidth < 1024) return; // skip heavy WebGL on mobile/tablet
     const canvas = document.getElementById('supernova-bg');
     if (!canvas || typeof THREE === 'undefined') { setTimeout(() => this.initSupernova(), 200); return; }
     const scene = new THREE.Scene();
@@ -375,13 +376,22 @@ class Component extends DCLogic {
         if (media) media.style.transform = 'scale(1)';
         if (video) video.pause();
       });
-      // Mobile: load video on first touch for faster subsequent play
-      if ('ontouchstart' in window) {
-        card.addEventListener('touchstart', () => {
-          if (video && !video.src && video.dataset.src) { video.src = video.dataset.src; video.load(); }
-        }, { once: true, passive: true });
-      }
     });
+    // Mobile: load + play videos only when visible, pause when off-screen
+    if (isMobile || 'ontouchstart' in window) {
+      const vidIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          const vid = e.target;
+          if (e.isIntersecting) {
+            if (!vid.src && vid.dataset.src) vid.src = vid.dataset.src;
+            vid.play().catch(() => {});
+          } else {
+            vid.pause();
+          }
+        });
+      }, { threshold: 0.25 });
+      this.qa('.card-video').forEach((v) => vidIO.observe(v));
+    }
 
     // Navbar shadow
     const navPill = this.q('#navPill');
