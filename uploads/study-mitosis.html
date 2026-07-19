@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mitosis</title>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}canvas{display:block;position:fixed;top:0;left:0}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W,H;
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+resize(); window.addEventListener('resize',resize);
+
+const CYCLE=5200; // ms — full loop
+
+function ease(t){ return t*t*(3-2*t); } // smoothstep
+function easeIn(t){ return t*t*t; }
+function easeOut(t){ return 1-Math.pow(1-t,3); }
+
+// ─── Glow helpers ────────────────────────────────────────
+function radGlow(x,y,r,color,alpha){
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,`rgba(${color},${alpha})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;
+  ctx.fillRect(x-r,y-r,r*2,r*2);
+}
+
+// ─── Cell membrane — parametric with pinch ───────────────
+// Neck pinches at horizontal midline (where sin(t)=0, i.e., t=0,π)
+function drawMembrane(cx,cy,rx,ry,pinch,alpha,color='0,255,140'){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  // Three glow passes: wide/faint, medium, crisp core
+  for(const [blur,lw,a] of [[28,6,0.08],[14,3,0.20],[4,1.4,0.85]]){
+    ctx.shadowBlur=blur;
+    ctx.shadowColor=`rgba(${color},0.8)`;
+    ctx.strokeStyle=`rgba(${color},${a})`;
+    ctx.lineWidth=lw;
+    ctx.beginPath();
+    const N=200;
+    for(let i=0;i<=N;i++){
+      const t=(i/N)*Math.PI*2;
+    const neck=Math.exp(-(Math.sin(t)**2)*6); // peaks near t=0,π
+      const xp=cx + rx*Math.cos(t)*(1-pinch*neck*0.98);
+      const yp=cy + ry*Math.sin(t);
+      i===0?ctx.moveTo(xp,yp):ctx.lineTo(xp,yp);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+
+// ─── Two-cell rendering ─────────────────────────────────
+function drawCell(x,y,r,alpha,color='0,255,140'){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  // Outer diffuse glow
+  radGlow(x,y,r*2.2,color,0.06);
+  // Nucleus
+  radGlow(x,y,r*0.42,color,0.18);
+  // Membrane
+  for(const [blur,lw,a] of [[22,5,0.08],[10,2.5,0.22],[3,1.2,0.85]]){
+    ctx.shadowBlur=blur;
+    ctx.shadowColor=`rgba(${color},0.8)`;
+    ctx.strokeStyle=`rgba(${color},${a})`;
+    ctx.lineWidth=lw;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+
+function drawChromosomes(cx,cy,rx,ry,sep,poleProgress,alpha){
+  // 4 chromosome pairs; sep: 0=center, 1=at poles
+  const pole=ry*0.60*poleProgress;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.shadowBlur=8;
+  ctx.shadowColor='rgba(180,255,220,0.8)';
+  ctx.fillStyle='rgba(200,255,230,0.95)';
+  // Top pole pair
+  for(const xo of [-rx*0.20, rx*0.20]){
+    ctx.beginPath(); ctx.arc(cx+xo, cy-pole, 3.5, 0, Math.PI*2); ctx.fill();
+  }
+  // Bottom pole pair
+  for(const xo of [-rx*0.20, rx*0.20]){
+    ctx.beginPath(); ctx.arc(cx+xo, cy+pole, 3.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+
+// ─── Main animation loop ─────────────────────────────────
+function drawLoop(){
+  const p=(performance.now()%CYCLE)/CYCLE; // 0..1 full cycle
+
+  ctx.fillStyle='#000506';
+  ctx.fillRect(0,0,W,H);
+
+  const cx=W/2, cy=H/2;
+  const R=Math.min(W,H)*0.18; // base cell radius
+
+  // Phase boundaries
+  const STABLE_END   = 0.14;
+  const ELONGATE_END = 0.38;
+  const CHROMSEP_END = 0.54;
+  const PINCH_END    = 0.65;
+  const SNAP_END     = 0.69;
+  const TWO_END      = 0.86;
+  const FADE_END     = 1.00;
+
+  let alpha=1;
+
+  if(p < STABLE_END){
+    // Single cell, stable
+    const rx=R, ry=R;
+    radGlow(cx,cy,R*2.4,'0,200,100',0.04);
+    radGlow(cx,cy,R*0.48,'0,220,120',0.14);
+    drawMembrane(cx,cy,rx,ry,0,1);
+    drawChromosomes(cx,cy,rx,ry,0,0,0.65);
+
+  } else if(p < ELONGATE_END){
+    const t=ease((p-STABLE_END)/(ELONGATE_END-STABLE_END));
+    const rx=R*(1-t*0.14);
+    const ry=R*(1+t*0.38);
+    // Chromosomes start separating mid-elongate
+    const sep=ease(Math.max(0,(t-0.3)/0.7));
+    radGlow(cx,cy,ry*1.8,'0,200,100',0.04);
+    radGlow(cx,cy,ry*0.42,'0,220,120',0.12);
+    drawMembrane(cx,cy,rx,ry,0,1);
+    drawChromosomes(cx,cy,rx,ry,sep,sep,0.75);
+
+  } else if(p < CHROMSEP_END){
+    const t=ease((p-ELONGATE_END)/(CHROMSEP_END-ELONGATE_END));
+    const rx=R*0.86;
+    const ry=R*1.38;
+    radGlow(cx,cy,ry*1.7,'0,200,100',0.04);
+    radGlow(cx,cy,ry*0.38,'0,220,120',0.10);
+    drawMembrane(cx,cy,rx,ry,0,1);
+    drawChromosomes(cx,cy,rx,ry,1,1,0.85);
+
+  } else if(p < PINCH_END){
+    // PINCH — the climax builds here
+    const t=easeIn((p-CHROMSEP_END)/(PINCH_END-CHROMSEP_END));
+    const rx=R*0.86;
+    const ry=R*1.38;
+    radGlow(cx,cy,ry*1.6,'0,200,100',0.04);
+    drawMembrane(cx,cy,rx,ry,t,1);
+    drawChromosomes(cx,cy,rx,ry,1,1,0.85*(1-t*0.5));
+
+  } else if(p < SNAP_END){
+    // SNAP — near-instant split with bright flash
+    const t=(p-PINCH_END)/(SNAP_END-PINCH_END);
+    const flashAlpha=Math.exp(-t*8)*0.7; // bright flash at moment of split
+    // Flash
+    radGlow(cx,cy,R*1.6,'180,255,220',flashAlpha);
+    // Two cells already separated, jumping apart
+    const sep=easeOut(t)*R*1.05;
+    const cellR=R*0.82;
+    drawCell(cx,cy-sep,cellR,0.7+t*0.3);
+    drawCell(cx,cy+sep,cellR,0.7+t*0.3);
+
+  } else if(p < TWO_END){
+    const t=ease((p-SNAP_END)/(TWO_END-SNAP_END));
+    const sep=R*1.05+t*R*0.10; // settle to final positions
+    const cellR=R*0.82;
+    drawCell(cx,cy-sep,cellR,1);
+    drawCell(cx,cy+sep,cellR,1);
+    // Chromosomes inside each daughter cell
+    const da=0.6+t*0.2;
+    for(const sy of [-1,1]){
+      const dy=cy+sy*sep;
+      ctx.save(); ctx.globalAlpha=da;
+      ctx.shadowBlur=6; ctx.shadowColor='rgba(160,255,210,0.7)';
+      ctx.fillStyle='rgba(190,255,225,0.9)';
+      for(const xo of [-cellR*0.22,cellR*0.22]){
+        ctx.beginPath(); ctx.arc(cx+xo,dy,3,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0; ctx.restore();
+    }
+
+  } else {
+    // Fade out both cells → back to black → new cycle
+    const t=ease((p-TWO_END)/(FADE_END-TWO_END));
+    const fa=1-t;
+    const sep=R*1.15;
+    const cellR=R*0.82;
+    drawCell(cx,cy-sep,cellR,fa);
+    drawCell(cx,cy+sep,cellR,fa);
+  }
+
+  requestAnimationFrame(drawLoop);
+}
+drawLoop();
+</script>
+</body>
+</html>

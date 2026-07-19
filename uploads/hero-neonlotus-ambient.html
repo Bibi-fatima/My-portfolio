@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>hero — neon lotus ambient</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;}
+canvas{display:block;position:fixed;top:0;left:0;}
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.z = 200;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+function getGlow() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.15,'rgba(255,255,255,0.8)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+
+const count = 30000;
+const geo = new THREE.BufferGeometry();
+const pos = new Float32Array(count*3), col = new Float32Array(count*3);
+const tPos = new Float32Array(count*3), tCol = new Float32Array(count*3);
+const cObj = new THREE.Color();
+
+// Neon Lotus — phyllotaxis spiral with z curvature
+for (let i = 0; i < count; i++) {
+  const a = i * 137.5 * (Math.PI/180);
+  const r = Math.sqrt(i) * 0.8;
+  const z = Math.sin(r * 0.5) * 15 - (r * r) / 40;
+  tPos[i*3]   = r * Math.cos(a) * 2;
+  tPos[i*3+1] = r * Math.sin(a) * 2;
+  tPos[i*3+2] = z;
+  // Muted ambient: neon red-pink, reduced lightness from original 0.65
+  cObj.setHSL(0.96 + (r / 400), 0.82, 0.5);
+  tCol[i*3] = cObj.r; tCol[i*3+1] = cObj.g; tCol[i*3+2] = cObj.b;
+}
+
+// Scatter in from wide
+for (let i = 0; i < count*3; i++) { pos[i] = tPos[i]*3; col[i] = tCol[i]; }
+
+geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+
+const mat = new THREE.PointsMaterial({
+  size: 2.5, vertexColors: true, map: getGlow(),
+  blending: THREE.AdditiveBlending, transparent: true, depthWrite: false
+});
+const sys = new THREE.Points(geo, mat);
+scene.add(sys);
+
+let time = 0;
+function anim() {
+  requestAnimationFrame(anim);
+  time += 0.01; // ~50% of original speed
+  const p = geo.attributes.position.array;
+  for (let i = 0; i < count; i++) {
+    const b = Math.sin(time + p[i*3] * 0.05) * 0.2;
+    p[i*3]   += (tPos[i*3]   + p[i*3]   * b - p[i*3])   * 0.04;
+    p[i*3+1] += (tPos[i*3+1] + p[i*3+1] * b - p[i*3+1]) * 0.04;
+    p[i*3+2] += (tPos[i*3+2] - p[i*3+2])                 * 0.04;
+    col[i*3]   += (tCol[i*3]   - col[i*3])   * 0.05;
+    col[i*3+1] += (tCol[i*3+1] - col[i*3+1]) * 0.05;
+    col[i*3+2] += (tCol[i*3+2] - col[i*3+2]) * 0.05;
+  }
+  geo.attributes.position.needsUpdate = true;
+  geo.attributes.color.needsUpdate    = true;
+  // Slow ambient rotation — no mouse
+  sys.rotation.y += 0.001;
+  sys.rotation.x += 0.0003;
+  renderer.render(scene, camera);
+}
+anim();
+</script>
+</body>
+</html>

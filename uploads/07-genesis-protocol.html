@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENESIS PROTOCOL</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:   #03020a;
+  --deep:   #06041a;
+  --gold:   #c8a84c;
+  --goldL:  #e8d080;
+  --green:  #4cffaa;
+  --red:    #ff4c6a;
+  --blue:   #4ca8ff;
+  --purple: #9c6cff;
+  --fg:     rgba(255,255,255,0.7);
+  --faint:  rgba(255,255,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--void);}
+body{cursor:none;font-family:'DM Mono',monospace;}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;}
+
+/* Custom cursor */
+#cur{position:fixed;pointer-events:none;z-index:999;transform:translate(-50%,-50%);}
+#cur-dot{width:6px;height:6px;border-radius:50%;background:#fff;opacity:0.9;}
+#cur-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:24px;height:24px;border:1px solid rgba(255,255,255,0.25);border-radius:50%;
+  transition:width .25s,height .25s,border-color .25s;}
+body.inject #cur-ring{width:40px;height:40px;border-color:rgba(76,255,170,0.6);}
+body.remove #cur-ring{width:40px;height:40px;border-color:rgba(255,76,106,0.6);}
+
+/* DNA Panel */
+#dna-panel{
+  position:fixed;left:0;top:0;bottom:0;width:220px;
+  background:rgba(3,2,10,0.85);
+  border-right:1px solid rgba(255,255,255,0.05);
+  backdrop-filter:blur(12px);
+  z-index:10;display:flex;flex-direction:column;
+  padding:32px 20px;gap:0;
+  transform:translateX(-180px);
+  transition:transform .4s ease;
+}
+#dna-panel:hover{transform:translateX(0);}
+#dna-tab{
+  position:absolute;right:-28px;top:50%;transform:translateY(-50%);
+  writing-mode:vertical-lr;text-orientation:mixed;
+  font-size:9px;letter-spacing:0.3em;color:rgba(255,255,255,0.2);
+  text-transform:uppercase;padding:12px 8px;
+  background:rgba(3,2,10,0.7);
+  border:1px solid rgba(255,255,255,0.05);
+  border-left:none;border-radius:0 4px 4px 0;
+  cursor:default;
+}
+.dna-header{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:13px;
+  color:rgba(255,255,255,0.25);letter-spacing:0.15em;
+  margin-bottom:28px;text-transform:uppercase;
+}
+.trait{margin-bottom:18px;}
+.trait-label{
+  font-size:8px;letter-spacing:0.28em;text-transform:uppercase;
+  color:rgba(255,255,255,0.3);margin-bottom:6px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.trait-val{color:var(--gold);font-size:9px;}
+.trait-track{
+  height:3px;background:rgba(255,255,255,0.06);
+  border-radius:2px;position:relative;cursor:col-resize;
+}
+.trait-fill{
+  height:100%;border-radius:2px;
+  transition:width .15s ease, background .3s ease;
+}
+.trait-thumb{
+  position:absolute;top:50%;width:10px;height:10px;
+  border-radius:50%;border:1.5px solid rgba(255,255,255,0.6);
+  background:var(--void);transform:translate(-50%,-50%);
+  cursor:col-resize;transition:left .15s ease;
+}
+.dna-divider{height:1px;background:rgba(255,255,255,0.04);margin:8px 0 20px;}
+.action-btn{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  color:rgba(255,255,255,0.4);
+  font-family:'DM Mono',monospace;
+  font-size:8px;letter-spacing:0.22em;text-transform:uppercase;
+  padding:9px 12px;border-radius:2px;
+  cursor:pointer;width:100%;text-align:left;
+  margin-bottom:8px;transition:all .2s;
+}
+.action-btn:hover{
+  background:rgba(255,255,255,0.08);
+  border-color:rgba(255,255,255,0.16);
+  color:rgba(255,255,255,0.8);
+}
+.action-btn.danger:hover{
+  background:rgba(255,76,106,0.1);
+  border-color:rgba(255,76,106,0.3);
+  color:var(--red);
+}
+
+/* Top HUD */
+#hud{
+  position:fixed;top:0;left:0;right:0;
+  display:flex;justify-content:space-between;
+  align-items:flex-start;
+  padding:24px 40px;z-index:10;
+  pointer-events:none;
+}
+#title-block{text-align:center;position:absolute;left:50%;transform:translateX(-50%);}
+#title-block h1{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:300;font-size:clamp(14px,2vw,18px);
+  letter-spacing:0.5em;text-transform:uppercase;
+  color:rgba(255,255,255,0.2);
+}
+#title-block p{
+  font-size:8px;letter-spacing:0.3em;text-transform:uppercase;
+  color:rgba(255,255,255,0.08);margin-top:4px;
+}
+.hud-stats{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;
+  color:rgba(255,255,255,0.18);line-height:2.4;}
+.hud-stats b{color:rgba(255,255,255,0.5);font-weight:400;}
+
+/* Event log */
+#event-log{
+  position:fixed;bottom:32px;left:50%;transform:translateX(-50%);
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:clamp(13px,1.8vw,16px);
+  color:rgba(255,255,255,0.35);
+  letter-spacing:0.1em;text-align:center;
+  pointer-events:none;z-index:10;
+  transition:opacity .8s ease;
+  text-shadow:0 0 20px rgba(255,255,255,0.1);
+}
+
+/* Epoch flash */
+#epoch-flash{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:20;opacity:0;
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:clamp(28px,5vw,52px);
+  letter-spacing:0.3em;text-transform:uppercase;
+  color:rgba(255,255,255,0.7);
+  text-shadow:0 0 60px rgba(255,255,255,0.3);
+  transition:opacity .4s;
+}
+
+/* Inject mode hint */
+#mode-hint{
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  font-size:8px;letter-spacing:0.28em;text-transform:uppercase;
+  color:rgba(255,255,255,0.12);pointer-events:none;z-index:10;
+  white-space:nowrap;
+}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#hud{animation:fadeIn 2s ease both 0.5s;}
+#event-log{animation:fadeIn 3s ease both 1.5s;}
+</style>
+</head>
+<body>
+
+<div id="cur"><div id="cur-dot"></div><div id="cur-ring"></div></div>
+<div id="epoch-flash"></div>
+<canvas id="c"></canvas>
+
+<!-- DNA PANEL -->
+<div id="dna-panel">
+  <div id="dna-tab">DNA Interface</div>
+  <div class="dna-header">Genome Editor</div>
+
+  <div id="traits-container"></div>
+
+  <div class="dna-divider"></div>
+  <button class="action-btn" id="btn-inject">⊕ Inject organism</button>
+  <button class="action-btn" id="btn-mutate">↯ Force mutation</button>
+  <button class="action-btn" id="btn-food">◈ Flood resources</button>
+  <button class="action-btn danger" id="btn-crisis">⚠ Trigger crisis</button>
+  <button class="action-btn danger" id="btn-reset">↺ New genesis</button>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-stats">
+    Population <b id="s-pop">1</b><br>
+    Generation <b id="s-gen">0</b><br>
+    Age <b id="s-age">0</b>
+  </div>
+  <div id="title-block">
+    <h1>Genesis Protocol</h1>
+    <p>Emergent life simulation</p>
+  </div>
+  <div class="hud-stats" style="text-align:right">
+    Food <b id="s-food">0</b><br>
+    Extinct <b id="s-extinct">0</b><br>
+    Epoch <b id="s-epoch">I</b>
+  </div>
+</div>
+
+<div id="event-log">A single cell stirs in the void.</div>
+<div id="mode-hint">Hover left edge · drag traits · click to inject</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  GENESIS PROTOCOL — Emergent Life Simulation
+// ════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W = canvas.width  = innerWidth;
+let H = canvas.height = innerHeight;
+window.addEventListener('resize', () => { W=canvas.width=innerWidth; H=canvas.height=innerHeight; });
+
+// ── Cursor ──
+const curEl = document.getElementById('cur');
+let mx=W/2, my=H/2, clickMode='inject';
+document.addEventListener('mousemove', e=>{
+  mx=e.clientX; my=e.clientY;
+  curEl.style.left=mx+'px'; curEl.style.top=my+'px';
+});
+
+// ════════════════════════════════════════════════════
+//  DNA / GENOME SYSTEM
+// ════════════════════════════════════════════════════
+const TRAITS = [
+  { id:'speed',      label:'Speed',           min:0.2, max:4,   val:1,    color:'#4ca8ff' },
+  { id:'size',       label:'Size',            min:2,   max:20,  val:6,    color:'#c8a84c' },
+  { id:'repro',      label:'Reproduction',    min:0,   max:1,   val:0.3,  color:'#4cffaa' },
+  { id:'aggression', label:'Aggression',      min:0,   max:1,   val:0.2,  color:'#ff4c6a' },
+  { id:'intel',      label:'Intelligence',    min:0,   max:1,   val:0.3,  color:'#9c6cff' },
+  { id:'adapt',      label:'Adaptability',   min:0,   max:1,   val:0.5,  color:'#e8d080' },
+];
+
+const genome = {};
+TRAITS.forEach(t => genome[t.id] = t.val);
+
+// Build DNA sliders
+const tc = document.getElementById('traits-container');
+TRAITS.forEach(t => {
+  const div = document.createElement('div');
+  div.className='trait';
+  const frac = (t.val-t.min)/(t.max-t.min);
+  div.innerHTML=`
+    <div class="trait-label">${t.label}<span class="trait-val" id="tv-${t.id}">${t.val.toFixed(2)}</span></div>
+    <div class="trait-track" data-id="${t.id}">
+      <div class="trait-fill" id="tf-${t.id}" style="width:${frac*100}%;background:${t.color}44;"></div>
+      <div class="trait-thumb" id="tt-${t.id}" style="left:${frac*100}%;background:${t.color};border-color:${t.color};"></div>
+    </div>`;
+  tc.appendChild(div);
+});
+
+// Drag logic for sliders
+let dragging=null;
+document.querySelectorAll('.trait-track').forEach(track => {
+  const startDrag = e => {
+    dragging=track.dataset.id;
+    e.preventDefault();
+  };
+  track.addEventListener('mousedown', startDrag);
+  track.querySelector('.trait-thumb').addEventListener('mousedown', startDrag);
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const track = document.querySelector(`.trait-track[data-id="${dragging}"]`);
+  const rect  = track.getBoundingClientRect();
+  let frac    = Math.max(0, Math.min(1, (e.clientX-rect.left)/rect.width));
+  const t     = TRAITS.find(x=>x.id===dragging);
+  const val   = t.min + frac*(t.max-t.min);
+  genome[dragging] = val;
+  document.getElementById(`tf-${dragging}`).style.width = (frac*100)+'%';
+  document.getElementById(`tt-${dragging}`).style.left  = (frac*100)+'%';
+  document.getElementById(`tv-${dragging}`).textContent = val.toFixed(2);
+  onGenomeChange();
+});
+document.addEventListener('mouseup', ()=>{ dragging=null; });
+
+function onGenomeChange() {
+  // Apply genome changes to all organisms in real time
+  organisms.forEach(o => {
+    if (o.generation===0) {
+      o.speed      = genome.speed      * (0.8+Math.random()*0.4);
+      o.maxSize    = genome.size       * (0.8+Math.random()*0.4);
+      o.repro      = genome.repro      * (0.8+Math.random()*0.4);
+      o.aggression = genome.aggression * (0.8+Math.random()*0.4);
+      o.intel      = genome.intel      * (0.8+Math.random()*0.4);
+      o.adapt      = genome.adapt      * (0.8+Math.random()*0.4);
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  WORLD / RESOURCES
+// ════════════════════════════════════════════════════
+let foods    = [];
+let epoch    = 0;
+let simAge   = 0;
+let extinctions = 0;
+let generation  = 0;
+const EPOCH_NAMES = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+
+function spawnFood(n=1) {
+  for (let i=0;i<n;i++) {
+    foods.push({
+      x: 60 + Math.random()*(W-120),
+      y: 60 + Math.random()*(H-120),
+      energy: 0.3 + Math.random()*0.7,
+      r: 0,
+      maxR: 1.5 + Math.random()*2.5,
+      hue: 90+Math.random()*60,
+      age: 0,
+      life: 1,
+    });
+  }
+}
+
+// Initial food
+for (let i=0;i<40;i++) spawnFood();
+
+// ════════════════════════════════════════════════════
+//  ORGANISM CLASS
+// ════════════════════════════════════════════════════
+let oidNext = 0;
+class Organism {
+  constructor(x, y, parentGenes=null) {
+    this.id    = oidNext++;
+    this.x     = x ?? (W*0.2 + Math.random()*W*0.6);
+    this.y     = y ?? (H*0.2 + Math.random()*H*0.6);
+    this.vx    = (Math.random()-0.5)*0.5;
+    this.vy    = (Math.random()-0.5)*0.5;
+    this.generation = parentGenes ? parentGenes.generation+1 : 0;
+
+    // Inherit or derive from genome
+    const base = parentGenes || genome;
+    const mut  = parentGenes ? (genome.adapt*0.15) : 0;
+    this.speed      = this.clamp(base.speed      + (Math.random()-0.5)*mut*4,   0.2, 5);
+    this.maxSize    = this.clamp(base.maxSize     + (Math.random()-0.5)*mut*20,  2,   28);
+    this.repro      = this.clamp(base.repro       + (Math.random()-0.5)*mut,     0,   1);
+    this.aggression = this.clamp(base.aggression  + (Math.random()-0.5)*mut,     0,   1);
+    this.intel      = this.clamp(base.intel       + (Math.random()-0.5)*mut,     0,   1);
+    this.adapt      = this.clamp(base.adapt       + (Math.random()-0.5)*mut,     0,   1);
+
+    if (!parentGenes) {
+      this.speed      = genome.speed      * (0.8+Math.random()*0.4);
+      this.maxSize    = genome.size       * (0.8+Math.random()*0.4);
+      this.repro      = genome.repro      * (0.8+Math.random()*0.4);
+      this.aggression = genome.aggression * (0.8+Math.random()*0.4);
+      this.intel      = genome.intel      * (0.8+Math.random()*0.4);
+      this.adapt      = genome.adapt      * (0.8+Math.random()*0.4);
+    }
+
+    // Derived hue from traits
+    this.hue    = 120 - this.aggression*90 + this.intel*40;
+    this.sat    = 60  + this.adapt*30;
+    this.size   = 1;
+    this.energy = 0.8;
+    this.age    = 0;
+    this.alive  = true;
+    this.reproTimer = 0;
+    this.target = null;
+    this.trail  = [];
+    this.trailMax = Math.round(4 + this.intel*12);
+    this.memory = []; // memory of food locations (intelligence)
+    this.fleeing = false;
+    this.fleeTimer = 0;
+    this.pulsePhase = Math.random()*Math.PI*2;
+    this.attackCooldown = 0;
+    this.crisisAdapted = false;
+  }
+
+  clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+  // Sense nearby food / threats
+  sense(others) {
+    let closestFood = null, closestDist = Infinity;
+    let threat = null, threatDist = Infinity;
+
+    foods.forEach(f => {
+      const d = Math.hypot(f.x-this.x, f.y-this.y);
+      if (d < closestDist && d < 180+this.intel*200) {
+        closestDist = d; closestFood = f;
+      }
+    });
+
+    // Memory: remember last seen food even if out of range
+    if (closestFood && this.intel > 0.4) {
+      this.memory.unshift({x:closestFood.x, y:closestFood.y});
+      if (this.memory.length > 5) this.memory.pop();
+    }
+
+    // Sense threats (larger aggressive organisms)
+    others.forEach(o => {
+      if (o===this||!o.alive) return;
+      const d = Math.hypot(o.x-this.x, o.y-this.y);
+      if (o.aggression > this.aggression && o.size > this.size*0.8 && d < 120) {
+        if (d < threatDist) { threatDist=d; threat=o; }
+      }
+    });
+
+    return { food:closestFood, threat };
+  }
+
+  update(others, crisis) {
+    if (!this.alive) return;
+    this.age++;
+    this.pulsePhase += 0.04;
+
+    // Grow toward max size
+    if (this.size < this.maxSize) this.size += 0.015 * (this.energy > 0.3 ? 1 : 0.3);
+
+    // Energy drain — bigger = more drain, crisis = more drain
+    const baseDrain = 0.0006 + this.size*0.00005;
+    const crisisDrain = crisis ? (this.crisisAdapted ? 0.8 : 2.5) : 1;
+    this.energy -= baseDrain * crisisDrain;
+
+    this.reproTimer++;
+    if (this.attackCooldown > 0) this.attackCooldown--;
+    if (this.fleeTimer > 0) this.fleeTimer--;
+
+    // Death conditions
+    if (this.energy <= 0 || this.age > 3000 + this.adapt*2000) {
+      this.alive = false; return;
+    }
+
+    // Behavior — emerges from traits
+    const { food, threat } = this.sense(others);
+
+    let ax=0, ay=0;
+
+    // FLEE from threats (survival instinct)
+    if (threat && this.fleeTimer === 0) {
+      this.fleeing = true; this.fleeTimer = 40;
+      const dx=this.x-threat.x, dy=this.y-threat.y;
+      const d=Math.hypot(dx,dy)+1;
+      ax += (dx/d)*3; ay += (dy/d)*3;
+    } else { this.fleeing = false; }
+
+    if (!this.fleeing) {
+      // SEEK food (hunger)
+      if (food && this.energy < 0.85) {
+        const dx=food.x-this.x, dy=food.y-this.y;
+        const d=Math.hypot(dx,dy)+1;
+        ax += (dx/d)*(1.5+this.intel*0.5);
+        ay += (dy/d)*(1.5+this.intel*0.5);
+      } else if (this.memory.length && !food && this.intel > 0.4) {
+        // Use memory when no food visible
+        const m = this.memory[0];
+        const dx=m.x-this.x, dy=m.y-this.y;
+        const d=Math.hypot(dx,dy)+1;
+        ax += (dx/d)*0.8; ay += (dy/d)*0.8;
+        if (d < 20) this.memory.shift();
+      }
+
+      // HUNT (aggression) — attack smaller organisms
+      if (this.aggression > 0.4 && this.attackCooldown===0) {
+        let prey=null, preyDist=Infinity;
+        others.forEach(o => {
+          if (o===this||!o.alive) return;
+          const d=Math.hypot(o.x-this.x,o.y-this.y);
+          if (o.size < this.size*0.85 && d < 150 && d < preyDist) {
+            preyDist=d; prey=o;
+          }
+        });
+        if (prey) {
+          const dx=prey.x-this.x, dy=prey.y-this.y;
+          const d=Math.hypot(dx,dy)+1;
+          ax += (dx/d)*this.aggression*2; ay += (dy/d)*this.aggression*2;
+          if (d < this.size+prey.size) {
+            // Attack!
+            prey.energy -= 0.25*this.aggression;
+            this.energy  = Math.min(1, this.energy+0.15);
+            this.attackCooldown = 30;
+          }
+        }
+      }
+
+      // WANDER (exploration)
+      if (this.age%60<30 || (!food && !prey)) {
+        ax += (Math.random()-0.5)*0.4;
+        ay += (Math.random()-0.5)*0.4;
+      }
+
+      // CLUSTER (social — inverse of aggression)
+      if (this.aggression < 0.3 && this.intel > 0.3) {
+        let nx=0,ny=0,n=0;
+        others.forEach(o=>{
+          if(o===this||!o.alive)return;
+          const d=Math.hypot(o.x-this.x,o.y-this.y);
+          if(d<80&&d>20){nx+=o.x-this.x;ny+=o.y-this.y;n++;}
+        });
+        if(n){ax+=nx/n*0.008;ay+=ny/n*0.008;}
+      }
+    }
+
+    // Apply acceleration
+    const spd = this.speed * (this.fleeing?1.6:1) * (crisis&&!this.crisisAdapted?0.7:1);
+    this.vx = (this.vx + ax*0.1)*0.92;
+    this.vy = (this.vy + ay*0.1)*0.92;
+    const v  = Math.hypot(this.vx,this.vy)+0.001;
+    const maxV = spd * 0.08;
+    if (v>maxV){this.vx=this.vx/v*maxV;this.vy=this.vy/v*maxV;}
+    this.x += this.vx; this.y += this.vy;
+
+    // Boundary
+    const pad = this.size+4;
+    if(this.x<pad){this.x=pad;this.vx*=-0.7;}
+    if(this.x>W-pad){this.x=W-pad;this.vx*=-0.7;}
+    if(this.y<pad){this.y=pad;this.vy*=-0.7;}
+    if(this.y>H-pad){this.y=H-pad;this.vy*=-0.7;}
+
+    // Eat food
+    for (let i=foods.length-1;i>=0;i--) {
+      const f=foods[i];
+      if(Math.hypot(f.x-this.x,f.y-this.y)<this.size+f.r){
+        this.energy=Math.min(1,this.energy+f.energy*0.4);
+        foods.splice(i,1);
+        break;
+      }
+    }
+
+    // Reproduce
+    const reproChance = this.repro * 0.003 * (this.energy>0.6?1:0);
+    if (this.reproTimer>200 && Math.random()<reproChance && organisms.length<120) {
+      this.reproTimer=0;
+      const child=new Organism(
+        this.x+(Math.random()-0.5)*30,
+        this.y+(Math.random()-0.5)*30,
+        this
+      );
+      child.generation = this.generation+1;
+      generation = Math.max(generation, child.generation);
+      organisms.push(child);
+      this.energy -= 0.2;
+    }
+
+    // Trail
+    this.trail.push({x:this.x,y:this.y,e:this.energy});
+    if(this.trail.length>this.trailMax)this.trail.shift();
+  }
+
+  draw() {
+    if (!this.alive) return;
+    const pulse = 1 + Math.sin(this.pulsePhase)*0.08;
+    const r     = this.size * pulse;
+    const e     = this.energy;
+    const hue   = this.hue + (this.fleeing?30:0) + (this.attackCooldown>0?-20:0);
+    const sat   = this.sat;
+    const lgt   = 40 + e*25;
+
+    // Trail
+    if (this.trail.length>1) {
+      ctx.beginPath();
+      ctx.moveTo(this.trail[0].x, this.trail[0].y);
+      for(let i=1;i<this.trail.length;i++){
+        ctx.lineTo(this.trail[i].x,this.trail[i].y);
+      }
+      ctx.strokeStyle=`hsla(${hue},${sat}%,${lgt}%,0.12)`;
+      ctx.lineWidth=r*0.5;
+      ctx.lineCap='round';
+      ctx.stroke();
+    }
+
+    // Aura / field
+    const aura=ctx.createRadialGradient(this.x,this.y,r*0.2,this.x,this.y,r*3);
+    aura.addColorStop(0,`hsla(${hue},${sat}%,${lgt}%,${0.08+e*0.05})`);
+    aura.addColorStop(1,`hsla(${hue},${sat}%,${lgt}%,0)`);
+    ctx.beginPath();ctx.arc(this.x,this.y,r*3,0,Math.PI*2);
+    ctx.fillStyle=aura;ctx.fill();
+
+    // Cell membrane
+    ctx.beginPath();ctx.arc(this.x,this.y,r,0,Math.PI*2);
+    const fill=ctx.createRadialGradient(
+      this.x-r*0.3,this.y-r*0.3,r*0.1,this.x,this.y,r
+    );
+    fill.addColorStop(0,`hsla(${hue+20},${sat+10}%,${lgt+20}%,${0.7+e*0.3})`);
+    fill.addColorStop(0.5,`hsla(${hue},${sat}%,${lgt}%,${0.5+e*0.2})`);
+    fill.addColorStop(1,`hsla(${hue-10},${sat-10}%,${lgt-15}%,${0.3+e*0.1})`);
+    ctx.fillStyle=fill;ctx.fill();
+
+    // Nucleus (intelligence marker)
+    if (this.intel > 0.25) {
+      const nr=r*(0.25+this.intel*0.2);
+      ctx.beginPath();ctx.arc(this.x,this.y,nr,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${hue+40},80%,80%,${0.3+this.intel*0.4})`;
+      ctx.fill();
+    }
+
+    // Energy ring
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,r+1,0,Math.PI*2*e);
+    ctx.strokeStyle=`hsla(${hue},${sat+20}%,${lgt+20}%,0.5)`;
+    ctx.lineWidth=0.8;ctx.stroke();
+
+    // Intelligence indicator — small orbiting particle
+    if (this.intel>0.55) {
+      const oa=this.pulsePhase*2, or2=r*1.4;
+      const ox=this.x+Math.cos(oa)*or2, oy=this.y+Math.sin(oa)*or2;
+      ctx.beginPath();ctx.arc(ox,oy,1.5,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${hue+60},90%,80%,0.8)`;ctx.fill();
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  WORLD STATE
+// ════════════════════════════════════════════════════
+let organisms = [new Organism(W/2, H/2)];
+let crisis    = false;
+let crisisTimer = 0;
+let frame     = 0;
+let lastPopulation = 1;
+let eventLogTimer = 0;
+let eventQueue = [];
+
+function setEvent(text, duration=180) {
+  eventQueue.push({text, duration});
+}
+
+function showEvent(text) {
+  const el=document.getElementById('event-log');
+  el.style.opacity='0';
+  setTimeout(()=>{el.textContent=text;el.style.opacity='1';},400);
+}
+
+function epochFlash(text, color='rgba(255,255,255,0.7)') {
+  const el=document.getElementById('epoch-flash');
+  el.textContent=text;el.style.color=color;el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0';},2200);
+}
+
+// ════════════════════════════════════════════════════
+//  BUTTONS
+// ════════════════════════════════════════════════════
+document.getElementById('btn-inject').addEventListener('click', ()=>{
+  const o=new Organism(mx,my);
+  organisms.push(o);
+  setEvent('New organism introduced to the ecosystem.');
+});
+
+document.getElementById('btn-mutate').addEventListener('click', ()=>{
+  organisms.forEach(o=>{
+    if(!o.alive)return;
+    o.hue   +=  (Math.random()-0.5)*60;
+    o.speed *=  0.7+Math.random()*0.6;
+    o.repro *=  0.7+Math.random()*0.6;
+    o.aggression=Math.min(1,o.aggression+(Math.random()-0.5)*0.3);
+    o.intel =Math.min(1,o.intel+(Math.random()-0.4)*0.2);
+  });
+  generation++;
+  setEvent('Mutagenic wave sweeps the population.');
+  epochFlash('MUTATION EVENT','rgba(156,108,255,0.8)');
+});
+
+document.getElementById('btn-food').addEventListener('click', ()=>{
+  spawnFood(35);
+  setEvent('Resources flood the environment. Rapid growth follows.');
+});
+
+document.getElementById('btn-crisis').addEventListener('click', ()=>{
+  crisis=true; crisisTimer=500;
+  organisms.forEach(o=>{ if(Math.random()<0.4*(1-o.adapt)) o.energy-=0.4; });
+  setEvent('Environmental collapse. Only the adaptive survive.');
+  epochFlash('EXTINCTION CRISIS','rgba(255,76,106,0.8)');
+});
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  organisms=[new Organism(W/2,H/2)];
+  foods=[];generation=0;epoch=0;simAge=0;extinctions=0;crisis=false;
+  for(let i=0;i<40;i++)spawnFood();
+  setEvent('Genesis reborn. A single cell stirs in the void.');
+  epochFlash('NEW GENESIS','rgba(200,168,76,0.8)');
+});
+
+// Click to inject organism
+canvas.addEventListener('click', e=>{
+  if(e.clientX < 220) return;
+  const o=new Organism(e.clientX, e.clientY);
+  organisms.push(o);
+});
+
+// ════════════════════════════════════════════════════
+//  SURPRISE EVENTS — 3 moments that break expectations
+// ════════════════════════════════════════════════════
+function checkSurprises() {
+  const pop = organisms.filter(o=>o.alive).length;
+
+  // 1. INTELLIGENCE EMERGENCE — when average intel crosses threshold
+  if (frame===1 || frame%300!==0) return;
+  const avgIntel = organisms.filter(o=>o.alive).reduce((s,o)=>s+o.intel,0)/(pop||1);
+  if (avgIntel > 0.65 && !window._intelEvent) {
+    window._intelEvent=true;
+    setEvent('Intelligence emerges. Organisms begin remembering. Something has changed.');
+    epochFlash('COGNITION THRESHOLD','rgba(156,108,255,0.9)');
+    organisms.filter(o=>o.alive).forEach(o=>{o.intel=Math.min(1,o.intel*1.3);});
+  }
+
+  // 2. POPULATION EXPLOSION — sudden boom
+  if (pop > lastPopulation*2.5 && pop > 20) {
+    setEvent('Population explosion. Resources collapse under the weight of life.');
+    epochFlash('EXPONENTIAL BLOOM','rgba(76,255,170,0.8)');
+    foods=foods.slice(0,5); // sudden scarcity
+    window._intelEvent=false;
+    lastPopulation=pop;
+  }
+
+  // 3. SUDDEN EXTINCTION — if population crashes
+  if (pop < 3 && lastPopulation > 15) {
+    extinctions++;
+    setEvent('Near extinction. The survivors carry the memory of a species.');
+    epochFlash('MASS EXTINCTION','rgba(255,76,106,0.9)');
+    // Survivors get crisis-adapted
+    organisms.filter(o=>o.alive).forEach(o=>{o.crisisAdapted=true;o.adapt=Math.min(1,o.adapt+0.4);});
+    epoch++; lastPopulation=pop;
+    spawnFood(20);
+  }
+
+  // 4. EPOCH CHANGE — every 1800 frames
+  if (frame%1800===0 && frame>0) {
+    epoch=Math.min(epoch+1,9);
+    setEvent(`Epoch ${EPOCH_NAMES[epoch]} begins. The world shifts.`);
+    epochFlash(`EPOCH ${EPOCH_NAMES[epoch]}`,'rgba(200,168,76,0.7)');
+    // Random epoch event
+    const roll=Math.random();
+    if(roll<0.33){crisis=true;crisisTimer=300;setEvent('A cold age descends.');}
+    else if(roll<0.66){spawnFood(50);setEvent('A golden age of abundance.');}
+    else{organisms.filter(o=>o.alive).forEach(o=>{o.speed*=1.4;o.repro*=1.3;});setEvent('Evolutionary acceleration.');}
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  FOOD SPAWNING
+// ════════════════════════════════════════════════════
+function updateFood() {
+  // Natural food growth
+  if (frame%90===0 && foods.length<60 && !crisis) spawnFood(2+Math.floor(Math.random()*3));
+  if (crisis && frame%180===0) spawnFood(1);
+
+  // Animate food
+  foods.forEach(f=>{
+    f.age++;
+    f.r=Math.min(f.maxR, f.r+0.05);
+    f.life=Math.max(0, 1-f.age/600);
+    // Slow drift
+    f.x+=Math.sin(f.age*0.02)*0.3; f.y+=Math.cos(f.age*0.018)*0.3;
+    f.x=Math.max(20,Math.min(W-20,f.x));
+    f.y=Math.max(20,Math.min(H-20,f.y));
+  });
+  foods=foods.filter(f=>f.life>0);
+}
+
+function drawFood() {
+  foods.forEach(f=>{
+    if(f.r<0.1)return;
+    const grd=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*4);
+    grd.addColorStop(0,  `hsla(${f.hue},80%,70%,${f.life*0.9})`);
+    grd.addColorStop(0.4,`hsla(${f.hue},70%,55%,${f.life*0.3})`);
+    grd.addColorStop(1,  `hsla(${f.hue},60%,40%,0)`);
+    ctx.beginPath();ctx.arc(f.x,f.y,f.r*4,0,Math.PI*2);
+    ctx.fillStyle=grd;ctx.fill();
+    ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${f.hue},90%,80%,${f.life*0.8})`;ctx.fill();
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  CRISIS VISUAL
+// ════════════════════════════════════════════════════
+function drawCrisis() {
+  if(!crisis)return;
+  const alpha=(crisisTimer/500)*0.06;
+  ctx.fillStyle=`rgba(255,20,20,${alpha})`;
+  ctx.fillRect(0,0,W,H);
+  // Vignette
+  const vgrd=ctx.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.8);
+  vgrd.addColorStop(0,'rgba(0,0,0,0)');
+  vgrd.addColorStop(1,`rgba(80,0,0,${alpha*1.5})`);
+  ctx.fillStyle=vgrd;ctx.fillRect(0,0,W,H);
+}
+
+// ════════════════════════════════════════════════════
+//  HUD UPDATE
+// ════════════════════════════════════════════════════
+function updateHUD() {
+  if(frame%12!==0)return;
+  const alive=organisms.filter(o=>o.alive).length;
+  document.getElementById('s-pop').textContent=alive;
+  document.getElementById('s-gen').textContent=generation;
+  document.getElementById('s-age').textContent=Math.floor(simAge/60)+'s';
+  document.getElementById('s-food').textContent=foods.length;
+  document.getElementById('s-extinct').textContent=extinctions;
+  document.getElementById('s-epoch').textContent=EPOCH_NAMES[epoch]||'I';
+}
+
+// ════════════════════════════════════════════════════
+//  EVENT QUEUE
+// ════════════════════════════════════════════════════
+function processEvents() {
+  if(eventQueue.length===0)return;
+  if(eventLogTimer===0){
+    const ev=eventQueue.shift();
+    showEvent(ev.text);
+    eventLogTimer=ev.duration;
+  } else { eventLogTimer--; }
+}
+
+// ════════════════════════════════════════════════════
+//  AMBIENT BACKGROUND — bioluminescent floor
+// ════════════════════════════════════════════════════
+function drawBackground() {
+  ctx.fillStyle='rgba(3,2,10,0.18)';
+  ctx.fillRect(0,0,W,H);
+
+  // Subtle vignette
+  const vgrd=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+  vgrd.addColorStop(0,'rgba(6,4,26,0)');
+  vgrd.addColorStop(1,'rgba(3,2,10,0.4)');
+  ctx.fillStyle=vgrd;ctx.fillRect(0,0,W,H);
+}
+
+// ════════════════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════════════════
+function loop() {
+  requestAnimationFrame(loop);
+  frame++; simAge++;
+
+  // Crisis countdown
+  if(crisis){crisisTimer--;if(crisisTimer<=0)crisis=false;}
+
+  // Remove dead
+  organisms=organisms.filter(o=>o.alive||(o.age++<3));
+
+  // Update all organisms
+  const alive=organisms.filter(o=>o.alive);
+  alive.forEach(o=>o.update(alive,crisis));
+
+  updateFood();
+  checkSurprises();
+  processEvents();
+  updateHUD();
+
+  // Draw
+  drawBackground();
+  drawCrisis();
+  drawFood();
+  organisms.forEach(o=>o.draw());
+
+  // Occasional ambient food
+  if(frame%240===0&&Math.random()<0.6)spawnFood(1);
+}
+
+// First event after a moment
+setTimeout(()=>{setEvent('Drag the genome. Inject life. Shape the void into something alive.');},2000);
+setTimeout(()=>{setEvent('Hover the left edge to open the genome editor.');},6000);
+
+loop();
+</script>
+</body>
+</html>

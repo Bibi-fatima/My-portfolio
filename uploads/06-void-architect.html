@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOID ARCHITECT · Build Universes</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:   #c9a84c;
+  --goldL:  #f0d080;
+  --cream:  #f5eed8;
+  --void:   #04030a;
+  --deep:   #080614;
+  --mid:    rgba(201,168,76,0.4);
+  --faint:  rgba(201,168,76,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--void);
+  overflow: hidden;
+  cursor: none;
+  font-family: 'DM Mono', monospace;
+  user-select: none;
+}
+
+canvas { position:fixed; top:0; left:0; z-index:1; }
+
+/* ── Custom Cursor ── */
+#cursor {
+  position: fixed; z-index: 999; pointer-events: none;
+  transform: translate(-50%,-50%);
+  transition: opacity 0.3s;
+}
+#cursor-core {
+  width: 10px; height: 10px;
+  background: radial-gradient(circle, #fff 0%, var(--goldL) 50%, transparent 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 16px var(--gold), 0 0 40px rgba(201,168,76,0.4);
+  transition: transform 0.15s;
+}
+#cursor-ring {
+  position: absolute;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(201,168,76,0.5);
+  border-radius: 50%;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  transition: width 0.3s, height 0.3s, border-color 0.3s;
+}
+body.holding #cursor-core { transform: scale(1.8); }
+body.holding #cursor-ring {
+  width: 80px; height: 80px;
+  border-color: rgba(201,168,76,0.8);
+  box-shadow: 0 0 30px rgba(201,168,76,0.2);
+}
+
+/* ── UI Shell ── */
+#ui { position:fixed; inset:0; z-index:10; pointer-events:none; }
+
+/* Title */
+#title-block {
+  position: fixed; top: 32px; left: 50%; transform: translateX(-50%);
+  text-align: center;
+  animation: fadeDown 1.5s ease both;
+}
+#title-block h1 {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(18px, 3vw, 28px);
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  color: var(--gold);
+  text-shadow: 0 0 40px rgba(201,168,76,0.4);
+  text-transform: uppercase;
+}
+#title-block p {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: clamp(11px, 1.5vw, 14px);
+  letter-spacing: 0.2em;
+  color: rgba(201,168,76,0.5);
+  margin-top: 6px;
+}
+
+/* Stats bar */
+#stats {
+  position: fixed; top: 32px; left: 40px;
+  font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; line-height: 2.4;
+  color: rgba(201,168,76,0.35);
+  animation: fadeIn 2s ease both 0.5s;
+}
+#stats b { color: rgba(201,168,76,0.85); font-weight:400; }
+
+/* Gravity meter */
+#gravity-wrap {
+  position: fixed; top: 32px; right: 40px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  animation: fadeIn 2s ease both 0.5s;
+}
+#gravity-label {
+  font-size: 9px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: rgba(201,168,76,0.35);
+}
+#gravity-bar-track {
+  width: 120px; height: 2px;
+  background: rgba(201,168,76,0.1);
+  border-radius: 2px; overflow: hidden;
+}
+#gravity-bar-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--gold), var(--goldL));
+  border-radius: 2px;
+  transition: width 0.1s ease;
+  box-shadow: 0 0 8px var(--gold);
+}
+
+/* Instruction overlay */
+#instructions {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+#instructions p {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: clamp(14px, 2vw, 18px);
+  color: rgba(201,168,76,0.45);
+  letter-spacing: 0.12em;
+  line-height: 1.8;
+}
+
+/* Bottom bar */
+#bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 48px;
+  border-top: 1px solid rgba(201,168,76,0.08);
+  display: flex; align-items: center; justify-content: center; gap: 48px;
+  background: rgba(4,3,10,0.7);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 2s ease both 1s;
+}
+.cmd {
+  font-size: 9px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: rgba(201,168,76,0.3);
+  display: flex; align-items: center; gap: 8px;
+}
+.cmd-key {
+  border: 1px solid rgba(201,168,76,0.25);
+  padding: 2px 8px; border-radius: 2px;
+  color: rgba(201,168,76,0.6); font-size: 9px;
+}
+
+/* Mode flash */
+#mode-flash {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(24px, 5vw, 48px);
+  color: var(--goldL);
+  text-shadow: 0 0 60px var(--gold);
+  letter-spacing: 0.3em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+
+/* Supernova flash */
+#nova-flash {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,220,100,0.6) 0%, transparent 70%);
+  pointer-events: none; opacity: 0; z-index: 8;
+  transition: opacity 0.1s;
+}
+
+/* Score popup */
+#score-popup {
+  position: fixed; top: 40%; left: 50%;
+  transform: translate(-50%,-50%);
+  text-align: center; pointer-events: none; opacity: 0;
+  z-index: 11;
+}
+#score-popup .score-val {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(32px, 6vw, 64px);
+  color: var(--goldL);
+  text-shadow: 0 0 40px var(--gold);
+}
+#score-popup .score-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 18px; color: rgba(201,168,76,0.6);
+  letter-spacing: 0.2em; margin-top: 8px;
+}
+
+@keyframes fadeDown {
+  from { opacity:0; transform: translateX(-50%) translateY(-16px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity:0; } to { opacity:1; }
+}
+@keyframes popScore {
+  0%   { opacity:0; transform: translate(-50%,-50%) scale(0.6); }
+  20%  { opacity:1; transform: translate(-50%,-50%) scale(1.1); }
+  70%  { opacity:1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity:0; transform: translate(-50%,-60%) scale(0.95); }
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"><div id="cursor-core"></div><div id="cursor-ring"></div></div>
+<div id="nova-flash"></div>
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div id="title-block">
+    <h1>Void Architect</h1>
+    <p>You are gravity. Build universes.</p>
+  </div>
+
+  <div id="stats">
+    Bodies <b id="s-bodies">0</b><br>
+    Orbiting <b id="s-orbiting">0</b><br>
+    Universes <b id="s-universes">0</b><br>
+    Score <b id="s-score">0</b>
+  </div>
+
+  <div id="gravity-wrap">
+    <div id="gravity-label">Gravitational field</div>
+    <div id="gravity-bar-track"><div id="gravity-bar-fill"></div></div>
+  </div>
+
+  <div id="instructions">
+    <p>Hold your cursor still<br>and watch the universe form around you</p>
+  </div>
+
+  <div id="mode-flash"></div>
+  <div id="score-popup">
+    <div class="score-val" id="sp-val">0</div>
+    <div class="score-label" id="sp-label">points</div>
+  </div>
+
+  <div id="bottom-bar">
+    <div class="cmd"><span class="cmd-key">HOLD</span> Create gravity well</div>
+    <div class="cmd"><span class="cmd-key">CLICK</span> Supernova</div>
+    <div class="cmd"><span class="cmd-key">MOVE</span> Sculpt orbits</div>
+    <div class="cmd"><span class="cmd-key">R</span> New universe</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//   SETUP
+// ═══════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W = canvas.width  = innerWidth;
+let H = canvas.height = innerHeight;
+window.addEventListener('resize', () => {
+  W = canvas.width  = innerWidth;
+  H = canvas.height = innerHeight;
+});
+
+// Cursor tracking
+const curEl   = document.getElementById('cursor');
+const gravBar = document.getElementById('gravity-bar-fill');
+let mx = W/2, my = H/2;
+let ringX = W/2, ringY = H/2;
+let isHolding = false;
+let holdTime  = 0;         // frames held
+let totalScore = 0;
+let universesBuilt = 0;
+let instructionsGone = false;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  curEl.style.left = mx + 'px';
+  curEl.style.top  = my + 'px';
+  if (!instructionsGone) {
+    document.getElementById('instructions').style.opacity = '0';
+    instructionsGone = true;
+  }
+});
+
+document.addEventListener('mousedown', () => {
+  isHolding = true;
+  document.body.classList.add('holding');
+});
+document.addEventListener('mouseup', () => {
+  isHolding = false;
+  holdTime = 0;
+  document.body.classList.remove('holding');
+});
+document.addEventListener('click', triggerSupernova);
+document.addEventListener('keydown', e => { if(e.key==='r'||e.key==='R') resetUniverse(); });
+
+// ═══════════════════════════════════════════
+//   PARTICLE / BODY SYSTEM
+// ═══════════════════════════════════════════
+const MAX_PARTICLES = 600;
+const MAX_BODIES    = 18;     // gravitational bodies (planets)
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    // Spawn from edges
+    const side = Math.floor(Math.random() * 4);
+    if (side===0){ this.x=Math.random()*W; this.y=-10; }
+    else if(side===1){ this.x=W+10; this.y=Math.random()*H; }
+    else if(side===2){ this.x=Math.random()*W; this.y=H+10; }
+    else { this.x=-10; this.y=Math.random()*H; }
+    this.vx    = (Math.random()-0.5)*0.6;
+    this.vy    = (Math.random()-0.5)*0.6;
+    this.mass  = 0.3 + Math.random()*0.7;
+    this.r     = 0.8 + this.mass * 1.2;
+    this.hue   = 35 + Math.random()*30;
+    this.life  = 1.0;
+    this.captured = false;
+    this.orbitBody = null;
+    this.orbitAngle= Math.random()*Math.PI*2;
+    this.orbitSpeed= 0;
+    this.orbitDist = 0;
+    this.trail = [];
+    this.trailMax = 8;
+  }
+}
+
+class Body {
+  constructor(x, y, mass) {
+    this.x    = x; this.y = y;
+    this.mass = mass;
+    this.r    = 4 + mass * 6;
+    this.vx   = (Math.random()-0.5)*0.3;
+    this.vy   = (Math.random()-0.5)*0.3;
+    this.hue  = 30 + Math.random()*50;
+    this.age  = 0;
+    this.orbitCount = 0;  // how many particles orbit this
+    this.moons      = []; // sub-bodies
+    this.ring       = Math.random() > 0.6; // has a ring?
+    this.ringAngle  = Math.random()*Math.PI;
+    this.glow       = 0;
+    this.trail      = [];
+    this.trailMax   = 30;
+    this.captured   = false; // captured by cursor gravity
+  }
+}
+
+let particles = [];
+let bodies    = [];
+let gravWells = []; // temporary gravity well at cursor
+let novaTimer = 0;
+
+// Spawn initial particles
+for(let i=0; i<MAX_PARTICLES; i++) {
+  const p = new Particle();
+  // Scatter randomly instead of from edges for initial state
+  p.x = Math.random()*W; p.y = Math.random()*H;
+  p.vx = (Math.random()-0.5)*1.5;
+  p.vy = (Math.random()-0.5)*1.5;
+  particles.push(p);
+}
+
+// ═══════════════════════════════════════════
+//   GRAVITY & PHYSICS
+// ═══════════════════════════════════════════
+const G        = 280;    // gravitational constant
+const CURSOR_G = 400;    // cursor well strength
+const MERGE_R  = 22;     // distance for particle→body capture
+const BODY_MERGE= 60;    // distance for body→body merge
+
+function getCursorGravity() {
+  return isHolding ? Math.min(1, holdTime / 180) : 0;
+}
+
+function update() {
+  if (isHolding) holdTime++;
+  const cGrav = getCursorGravity();
+
+  // ── Cursor gravity well ──
+  const wellStr = CURSOR_G * cGrav;
+
+  // ── Update particles ──
+  let orbitingCount = 0;
+  particles.forEach(p => {
+    if (p.orbitBody) {
+      // Orbiting a body
+      orbitingCount++;
+      const b = p.orbitBody;
+      if (!bodies.includes(b)) { p.orbitBody = null; p.captured = false; return; }
+      p.orbitAngle += p.orbitSpeed;
+      p.x = b.x + Math.cos(p.orbitAngle) * p.orbitDist;
+      p.y = b.y + Math.sin(p.orbitAngle) * p.orbitDist;
+      p.trail.push({x:p.x, y:p.y});
+      if (p.trail.length > p.trailMax) p.trail.shift();
+      return;
+    }
+
+    // Save trail
+    p.trail.push({x:p.x, y:p.y});
+    if (p.trail.length > p.trailMax) p.trail.shift();
+
+    // Gravity from cursor
+    if (cGrav > 0.05) {
+      const dx = mx - p.x, dy = my - p.y;
+      const d2 = dx*dx + dy*dy + 100;
+      const f  = wellStr * p.mass / d2;
+      p.vx += dx * f * 0.016;
+      p.vy += dy * f * 0.016;
+    }
+
+    // Gravity from bodies
+    bodies.forEach(b => {
+      const dx = b.x - p.x, dy = b.y - p.y;
+      const d  = Math.sqrt(dx*dx+dy*dy) + 1;
+      if (d < MERGE_R + b.r) {
+        // Capture into orbit
+        p.captured    = true;
+        p.orbitBody   = b;
+        p.orbitDist   = MERGE_R + b.r + Math.random()*30;
+        p.orbitAngle  = Math.atan2(p.y-b.y, p.x-b.x);
+        p.orbitSpeed  = (0.012 + Math.random()*0.018) * (Math.random()>0.5?1:-1);
+        b.orbitCount++;
+        b.glow = 1;
+        // Score!
+        addScore(10, b.x, b.y, '+10 captured');
+        return;
+      }
+      const f = G * b.mass * p.mass / (d*d + 80);
+      p.vx += (dx/d) * f * 0.016;
+      p.vy += (dy/d) * f * 0.016;
+    });
+
+    // Velocity cap
+    const spd = Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+    if (spd > 4) { p.vx = p.vx/spd*4; p.vy = p.vy/spd*4; }
+
+    p.x += p.vx; p.y += p.vy;
+
+    // Respawn if off screen
+    if (p.x<-50||p.x>W+50||p.y<-50||p.y>H+50) p.reset();
+  });
+
+  // ── Can cursor well birth a new body? ──
+  if (isHolding && holdTime > 90 && cGrav > 0.5 && bodies.length < MAX_BODIES) {
+    // Gather nearby particles
+    let near = 0;
+    particles.forEach(p => {
+      if (!p.orbitBody) {
+        const dx = p.x-mx, dy = p.y-my;
+        if (dx*dx+dy*dy < 60*60) near++;
+      }
+    });
+    if (near > 15 && Math.random() < 0.012) {
+      // Birth a new planet!
+      const mass = 1.5 + Math.random()*3 + cGrav*2;
+      const b    = new Body(mx + (Math.random()-0.5)*20, my + (Math.random()-0.5)*20, mass);
+      b.vx = (Math.random()-0.5)*0.5;
+      b.vy = (Math.random()-0.5)*0.5;
+      bodies.push(b);
+      flashMode('PLANET BORN');
+      addScore(100, mx, my, '+100 planet born!');
+    }
+  }
+
+  // ── Update bodies ──
+  bodies.forEach((b, bi) => {
+    b.age++;
+    b.glow = Math.max(0, b.glow - 0.02);
+    b.trail.push({x:b.x, y:b.y});
+    if (b.trail.length > b.trailMax) b.trail.shift();
+
+    // Cursor gravity on bodies too
+    if (cGrav > 0.3) {
+      const dx = mx-b.x, dy = my-b.y;
+      const d2 = dx*dx+dy*dy+200;
+      const f  = wellStr * b.mass * 0.3 / d2;
+      b.vx += dx*f*0.016; b.vy += dy*f*0.016;
+    }
+
+    // Body-body gravity + possible merge
+    bodies.forEach((b2, bi2) => {
+      if (bi2 <= bi) return;
+      const dx = b2.x-b.x, dy = b2.y-b.y;
+      const d  = Math.sqrt(dx*dx+dy*dy)+1;
+      if (d < b.r + b2.r + 10) {
+        // Merge bodies!
+        const totalMass = b.mass + b2.mass;
+        b.x = (b.x*b.mass + b2.x*b2.mass)/totalMass;
+        b.y = (b.y*b.mass + b2.y*b2.mass)/totalMass;
+        b.vx= (b.vx*b.mass+b2.vx*b2.mass)/totalMass;
+        b.vy= (b.vy*b.mass+b2.vy*b2.mass)/totalMass;
+        b.mass = Math.min(8, totalMass);
+        b.r    = 4 + b.mass*6;
+        b.orbitCount += b2.orbitCount;
+        b.glow = 1;
+        bodies.splice(bi2,1);
+        flashMode('BODIES MERGED');
+        addScore(250, b.x, b.y, '+250 merger!');
+        return;
+      }
+      const f = G * b.mass * b2.mass * 0.05 / (d*d+100);
+      b.vx  += (dx/d)*f*0.016; b.vy  += (dy/d)*f*0.016;
+      b2.vx -= (dx/d)*f*0.016; b2.vy -= (dy/d)*f*0.016;
+    });
+
+    // Drag
+    b.vx *= 0.999; b.vy *= 0.999;
+    const bSpd = Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+    if (bSpd > 1.5) { b.vx = b.vx/bSpd*1.5; b.vy = b.vy/bSpd*1.5; }
+    b.x += b.vx; b.y += b.vy;
+
+    // Bounce off screen edges
+    if (b.x < b.r) { b.x = b.r; b.vx *= -0.6; }
+    if (b.x > W-b.r){ b.x = W-b.r; b.vx *= -0.6; }
+    if (b.y < b.r) { b.y = b.r; b.vy *= -0.6; }
+    if (b.y > H-b.r){ b.y = H-b.r; b.vy *= -0.6; }
+  });
+
+  // Update UI
+  document.getElementById('s-bodies').textContent   = bodies.length;
+  document.getElementById('s-orbiting').textContent = orbitingCount;
+  document.getElementById('s-universes').textContent= universesBuilt;
+  document.getElementById('s-score').textContent    = totalScore.toLocaleString();
+  gravBar.style.width = (getCursorGravity()*100) + '%';
+}
+
+// ═══════════════════════════════════════════
+//   SUPERNOVA
+// ═══════════════════════════════════════════
+function triggerSupernova() {
+  if (isHolding) return; // don't fire on hold-release click
+  flashNova();
+  const bonus = bodies.length * 50 + particles.filter(p=>p.orbitBody).length * 5;
+  if (bonus > 0) addScore(bonus, W/2, H/2, `+${bonus} supernova!`);
+
+  // Explode all particles outward from cursor
+  particles.forEach(p => {
+    p.orbitBody = null; p.captured = false;
+    const dx = p.x-mx, dy = p.y-my;
+    const d  = Math.sqrt(dx*dx+dy*dy)+1;
+    const f  = (300 + Math.random()*400) / d;
+    p.vx = (dx/d)*f*0.08 + (Math.random()-0.5)*3;
+    p.vy = (dy/d)*f*0.08 + (Math.random()-0.5)*3;
+    p.trail = [];
+  });
+
+  // Explode bodies
+  bodies.forEach(b => {
+    const dx = b.x-mx, dy = b.y-my;
+    const d  = Math.sqrt(dx*dx+dy*dy)+1;
+    b.vx += (dx/d)*8 + (Math.random()-0.5)*3;
+    b.vy += (dy/d)*8 + (Math.random()-0.5)*3;
+  });
+
+  novaTimer = 30;
+  universesBuilt++;
+  flashMode('SUPERNOVA');
+
+  // Clear bodies after explosion (they'll drift off screen)
+  setTimeout(() => { bodies = []; }, 2000);
+}
+
+function resetUniverse() {
+  bodies = [];
+  particles.forEach(p => { p.orbitBody=null; p.captured=false; p.reset(); p.trail=[]; });
+  universesBuilt++;
+  flashMode('NEW UNIVERSE');
+}
+
+// ═══════════════════════════════════════════
+//   SCORE / FLASH HELPERS
+// ═══════════════════════════════════════════
+let scorePopTimer = 0;
+function addScore(pts, x, y, label) {
+  totalScore += pts;
+  const pop = document.getElementById('score-popup');
+  document.getElementById('sp-val').textContent   = '+' + pts;
+  document.getElementById('sp-label').textContent = label || 'points';
+  pop.style.animation = 'none';
+  pop.offsetHeight;
+  pop.style.animation = 'popScore 1.8s ease forwards';
+}
+
+let modeTimer = 0;
+function flashMode(text) {
+  const el = document.getElementById('mode-flash');
+  el.textContent = text;
+  el.style.opacity = '1';
+  clearTimeout(modeTimer);
+  modeTimer = setTimeout(() => { el.style.opacity='0'; }, 1200);
+}
+
+function flashNova() {
+  const el = document.getElementById('nova-flash');
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity='0'; }, 200);
+}
+
+// ═══════════════════════════════════════════
+//   RENDERING
+// ═══════════════════════════════════════════
+// Persistent background — don't fully clear, let trails linger
+let bgAlpha = 0.12;
+
+function draw() {
+  // Semi-transparent clear — creates motion blur / trail effect
+  ctx.fillStyle = `rgba(4,3,10,${bgAlpha})`;
+  ctx.fillRect(0,0,W,H);
+
+  const cGrav = getCursorGravity();
+
+  // ── Cursor gravity well visualization ──
+  if (cGrav > 0.05) {
+    const rad = 80 + cGrav * 200;
+    // Lensing rings
+    for (let ri = 0; ri < 4; ri++) {
+      const rr = rad * (0.25 + ri*0.25);
+      const alpha = (0.06 - ri*0.012) * cGrav;
+      ctx.beginPath();
+      ctx.arc(mx, my, rr, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(201,168,76,${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    // Central glow
+    const cgrd = ctx.createRadialGradient(mx,my,0, mx,my,rad*0.5);
+    cgrd.addColorStop(0,   `rgba(255,230,150,${0.08*cGrav})`);
+    cgrd.addColorStop(0.5, `rgba(201,168,76,${0.03*cGrav})`);
+    cgrd.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = cgrd;
+    ctx.fillRect(0,0,W,H);
+
+    // Gravitational field lines (radiating spokes)
+    ctx.save();
+    ctx.translate(mx, my);
+    for (let i=0; i<12; i++) {
+      const angle = (i/12)*Math.PI*2 + frame*0.005;
+      const len   = rad * 0.7 * cGrav;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle)*20, Math.sin(angle)*20);
+      ctx.lineTo(Math.cos(angle)*len, Math.sin(angle)*len);
+      ctx.strokeStyle = `rgba(201,168,76,${0.04*cGrav})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── Draw particle trails ──
+  particles.forEach(p => {
+    if (p.trail.length < 2) return;
+    const isOrbiting = !!p.orbitBody;
+    ctx.beginPath();
+    ctx.moveTo(p.trail[0].x, p.trail[0].y);
+    for (let ti=1; ti<p.trail.length; ti++) {
+      ctx.lineTo(p.trail[ti].x, p.trail[ti].y);
+    }
+    ctx.strokeStyle = isOrbiting
+      ? `hsla(${p.hue},90%,70%,0.25)`
+      : `hsla(${p.hue},70%,60%,0.1)`;
+    ctx.lineWidth = p.r * 0.5;
+    ctx.stroke();
+  });
+
+  // ── Draw particles ──
+  particles.forEach(p => {
+    const isOrbiting = !!p.orbitBody;
+    const alpha = isOrbiting ? 0.9 : 0.5;
+    const glow  = isOrbiting ? 6 : 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${p.hue},85%,${isOrbiting?75:55}%,${alpha})`;
+    ctx.shadowColor= `hsla(${p.hue},100%,70%,0.8)`;
+    ctx.shadowBlur  = glow;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+  });
+
+  // ── Draw bodies ──
+  bodies.forEach(b => {
+    const age   = Math.min(1, b.age/60);
+    const glow  = b.glow;
+
+    // Body trail
+    if (b.trail.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(b.trail[0].x, b.trail[0].y);
+      b.trail.forEach(t => ctx.lineTo(t.x, t.y));
+      ctx.strokeStyle = `hsla(${b.hue},60%,50%,0.08)`;
+      ctx.lineWidth = b.r * 0.4;
+      ctx.stroke();
+    }
+
+    // Atmosphere halo
+    const atmR = b.r * 2.5 + glow * 20;
+    const atmGrd = ctx.createRadialGradient(b.x,b.y,b.r*0.5, b.x,b.y,atmR);
+    atmGrd.addColorStop(0,   `hsla(${b.hue},80%,60%,${0.15+glow*0.2})`);
+    atmGrd.addColorStop(0.5, `hsla(${b.hue},70%,40%,${0.06+glow*0.08})`);
+    atmGrd.addColorStop(1,   'hsla(0,0%,0%,0)');
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, atmR, 0, Math.PI*2);
+    ctx.fillStyle = atmGrd;
+    ctx.fill();
+
+    // Ring (if has one)
+    if (b.ring) {
+      b.ringAngle += 0.003;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.ringAngle);
+      ctx.scale(1, 0.25);
+      ctx.beginPath();
+      ctx.arc(0, 0, b.r*2.2, 0, Math.PI*2);
+      ctx.strokeStyle = `hsla(${b.hue+20},60%,65%,${0.3*age})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, b.r*2.8, 0, Math.PI*2);
+      ctx.strokeStyle = `hsla(${b.hue+10},50%,55%,${0.15*age})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Planet body — gradient sphere
+    const bodyGrd = ctx.createRadialGradient(
+      b.x - b.r*0.3, b.y - b.r*0.3, b.r*0.1,
+      b.x, b.y, b.r
+    );
+    bodyGrd.addColorStop(0,   `hsla(${b.hue+30},70%,80%,${age})`);
+    bodyGrd.addColorStop(0.5, `hsla(${b.hue},65%,50%,${age})`);
+    bodyGrd.addColorStop(1,   `hsla(${b.hue-20},60%,20%,${age})`);
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.fillStyle = bodyGrd;
+    ctx.shadowColor = `hsla(${b.hue},90%,65%,${0.6+glow*0.4})`;
+    ctx.shadowBlur  = 12 + glow*30;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+
+    // Orbit count badge
+    if (b.orbitCount > 0) {
+      ctx.font = `${Math.max(9,Math.min(12,b.r*0.8))}px 'DM Mono'`;
+      ctx.fillStyle = `rgba(255,240,200,0.6)`;
+      ctx.textAlign = 'center';
+      ctx.fillText(b.orbitCount, b.x, b.y - b.r - 5);
+    }
+  });
+
+  // ── Nova shockwave ──
+  if (novaTimer > 0) {
+    novaTimer--;
+    const shockR = (30 - novaTimer) * 40;
+    ctx.beginPath();
+    ctx.arc(mx, my, shockR, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,220,100,${novaTimer/30*0.6})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // ── Ambient starfield (static, tiny) ──
+  // Drawn once into offscreen — skip per-frame for perf
+}
+
+// ─── Offscreen starfield ───
+const starCanvas = document.createElement('canvas');
+starCanvas.width = innerWidth; starCanvas.height = innerHeight;
+const sCtx = starCanvas.getContext('2d');
+sCtx.fillStyle = '#04030a';
+sCtx.fillRect(0,0,innerWidth,innerHeight);
+for (let i=0; i<300; i++) {
+  const x = Math.random()*innerWidth, y = Math.random()*innerHeight;
+  const r = Math.random()*1.2;
+  const a = 0.1 + Math.random()*0.4;
+  sCtx.beginPath(); sCtx.arc(x,y,r,0,Math.PI*2);
+  sCtx.fillStyle = `rgba(255,245,220,${a})`; sCtx.fill();
+}
+
+// ═══════════════════════════════════════════
+//   MAIN LOOP
+// ═══════════════════════════════════════════
+let frame = 0;
+let lastTime = 0;
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+  frame++;
+
+  // Draw starfield once at start then rely on persistent clear
+  if (frame === 1) {
+    ctx.drawImage(starCanvas, 0, 0);
+  }
+
+  update();
+  draw();
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

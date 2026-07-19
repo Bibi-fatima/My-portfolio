@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floral Language Lab</title>
+    <style>
+        /* ==========================================================================
+           DESIGN SYSTEM & VARIABLES
+           ========================================================================== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* Palette */
+            --bg-base: #07111F;
+            --bg-surface: #0F172A;
+            --bg-elevated: #162033;
+            --bg-glass: rgba(15, 23, 42, 0.65);
+            
+            --primary: #38BDF8;
+            --primary-glow: rgba(56, 189, 248, 0.4);
+            --secondary: #A78BFA;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            
+            --text-main: #F8FAFC;
+            --text-muted: #CBD5E1;
+            --text-dark: #64748B;
+            
+            /* Spacing Scale */
+            --sp-1: 8px;
+            --sp-2: 16px;
+            --sp-3: 24px;
+            --sp-4: 32px;
+            --sp-5: 48px;
+            
+            /* Metrics */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            
+            --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --shadow-subtle: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --border-glass: 1px solid rgba(255, 255, 255, 0.08);
+            
+            --transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==========================================================================
+           RESET & GLOBAL
+           ========================================================================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            height: 100vh;
+            width: 100%;
+            overflow: hidden; /* Strict no-scroll policy */
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "left center right"
+                "bottom bottom bottom";
+            grid-template-columns: 280px 1fr 300px;
+            grid-template-rows: 64px 1fr 90px;
+            gap: var(--sp-2);
+            padding: var(--sp-2);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        @media (max-width: 1200px) {
+            body {
+                grid-template-areas:
+                    "header header"
+                    "left center"
+                    "bottom bottom";
+                grid-template-columns: 280px 1fr;
+            }
+            .sidebar-right { display: none; }
+        }
+
+        /* ==========================================================================
+           COMPONENTS
+           ========================================================================== */
+        .panel {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            border: var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .glass-panel {
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dark);
+            font-weight: 700;
+            margin-bottom: var(--sp-2);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-1);
+        }
+
+        /* Typography */
+        h1 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.02em; }
+        h2 { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+        p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; }
+
+        /* Controls */
+        .control-group { margin-bottom: var(--sp-3); }
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--sp-1);
+        }
+        .control-label { font-size: 0.8125rem; font-weight: 500; color: var(--text-muted); }
+        .control-value { font-size: 0.75rem; color: var(--primary); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+        /* Range Slider Styling (Premium) */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            margin: 8px 0;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: var(--bg-elevated);
+            border-radius: 2px;
+            transition: var(--transition);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--text-main);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            border: 2px solid var(--bg-surface);
+            transition: transform 0.1s;
+        }
+        input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.2); background: var(--primary); }
+        input[type=range]:hover::-webkit-slider-runnable-track { background: rgba(56, 189, 248, 0.3); }
+
+        /* Mode Selector Grid */
+        .mode-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--sp-1);
+            margin-bottom: var(--sp-4);
+        }
+        .mode-btn {
+            background: var(--bg-elevated);
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: var(--sp-2);
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mode-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .mode-btn.active {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: rgba(56, 189, 248, 0.3);
+            color: var(--primary);
+            box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.05);
+        }
+        .mode-indicator {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: transparent;
+        }
+        .mode-btn.active .mode-indicator {
+            background: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+        }
+
+        /* ==========================================================================
+           LAYOUT SECTIONS
+           ========================================================================== */
+        
+        /* 1. Top Bar */
+        .topbar {
+            grid-area: header;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 var(--sp-3);
+        }
+        .brand { display: flex; align-items: center; gap: var(--sp-2); }
+        .brand-logo {
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brand-logo::inner { content: ''; width: 8px; height: 8px; background: white; border-radius: 50%; }
+        .topbar-status {
+            display: flex; gap: var(--sp-4);
+        }
+        .status-item { display: flex; align-items: center; gap: var(--sp-1); font-size: 0.8125rem; color: var(--text-muted); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* 2. Left Sidebar (Controls) */
+        .sidebar-left {
+            grid-area: left;
+            padding: var(--sp-3);
+            overflow-y: auto;
+        }
+        .sidebar-left::-webkit-scrollbar { width: 4px; }
+        .sidebar-left::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+
+        /* 3. Center Workspace (Simulation) */
+        .center-workspace {
+            grid-area: center;
+            position: relative;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: #000; /* Fallback */
+            border: var(--border-glass);
+            box-shadow: var(--shadow-glass);
+        }
+        #simulationCanvas {
+            display: block;
+            width: 100%; height: 100%;
+            cursor: crosshair;
+        }
+        .sim-overlay {
+            position: absolute;
+            top: var(--sp-3); right: var(--sp-3);
+            pointer-events: none;
+            text-align: right;
+        }
+        .sim-badge {
+            display: inline-block;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .sim-instruction {
+            position: absolute;
+            bottom: var(--sp-3); left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            color: var(--text-main);
+            border: 1px solid rgba(255,255,255,0.1);
+            pointer-events: none;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        /* 4. Right Sidebar (Insights) */
+        .sidebar-right {
+            grid-area: right;
+            padding: var(--sp-3);
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+            overflow-y: auto;
+        }
+        .discovery-card {
+            background: var(--bg-elevated);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: var(--radius-md);
+            padding: var(--sp-2);
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 3px solid var(--primary);
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .discovery-tag { font-size: 0.65rem; text-transform: uppercase; color: var(--secondary); font-weight: 700; margin-bottom: 4px; }
+        .discovery-title { font-size: 0.875rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px; }
+        .discovery-desc { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.4; }
+
+        /* 5. Bottom Analytics Dock */
+        .bottom-dock {
+            grid-area: bottom;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: var(--sp-2);
+            padding: var(--sp-2);
+        }
+        .metric-card {
+            background: var(--bg-elevated);
+            border-radius: var(--radius-sm);
+            padding: var(--sp-2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+        .metric-card:hover { border-color: rgba(255,255,255,0.1); }
+        .metric-label { font-size: 0.6875rem; color: var(--text-dark); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+        .metric-value { font-size: 1.25rem; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; }
+        .metric-value.highlight { color: var(--primary); text-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+        .metric-value.warning { color: var(--danger); text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+    </style>
+</head>
+<body>
+
+    <header class="panel topbar glass-panel" role="banner">
+        <div class="brand">
+            <div class="brand-logo"><div style="width:8px; height:8px; background:white; border-radius:50%;"></div></div>
+            <div>
+                <h1>Floral Language Lab</h1>
+                <p style="font-size: 0.7rem; color: var(--primary);">Botanical Intelligence Platform</p>
+            </div>
+        </div>
+        <div class="topbar-status">
+            <div class="status-item">
+                <span class="status-dot"></span>
+                Ecosystem Active
+            </div>
+            <div class="status-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span id="headerTime">12:00 PM</span>
+            </div>
+            <div class="status-item" style="color: var(--secondary);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <span id="discoveryCount">0/5 Discoveries</span>
+            </div>
+        </div>
+    </header>
+
+    <aside class="panel sidebar-left" role="complementary" aria-label="Environment Controls">
+        <div class="section-title">Perception Filter</div>
+        <div class="mode-grid">
+            <button class="mode-btn active" data-mode="human" aria-pressed="true">
+                Human Vision <div class="mode-indicator"></div>
+            </button>
+            <button class="mode-btn" data-mode="bee" aria-pressed="false">
+                Bee Vision (UV) <div class="mode-indicator"></div>
+            </button>
+            <button class="mode-btn" data-mode="thermal" aria-pressed="false">
+                Thermal View <div class="mode-indicator"></div>
+            </button>
+            <button class="mode-btn" data-mode="chemical" aria-pressed="false">
+                Chemical Network <div class="mode-indicator"></div>
+            </button>
+            <button class="mode-btn" data-mode="network" aria-pressed="false" style="border: 1px dashed var(--secondary);">
+                Omni-Network <div class="mode-indicator"></div>
+            </button>
+        </div>
+
+        <div class="section-title" style="margin-top: var(--sp-4);">Environment</div>
+        
+        <div class="control-group">
+            <div class="control-header">
+                <span class="control-label">Time of Day</span>
+                <span class="control-value" id="valTime">12:00</span>
+            </div>
+            <input type="range" id="ctrlTime" min="0" max="24" value="12" step="0.5" aria-label="Time of Day">
+        </div>
+
+        <div class="control-group">
+            <div class="control-header">
+                <span class="control-label">Temperature</span>
+                <span class="control-value" id="valTemp">24°C</span>
+            </div>
+            <input type="range" id="ctrlTemp" min="5" max="45" value="24" aria-label="Temperature">
+        </div>
+
+        <div class="control-group">
+            <div class="control-header">
+                <span class="control-label">Pollinator Density</span>
+                <span class="control-value" id="valPollinators">30%</span>
+            </div>
+            <input type="range" id="ctrlPollinators" min="0" max="100" value="30" aria-label="Pollinator Density">
+        </div>
+
+        <div class="control-group">
+            <div class="control-header">
+                <span class="control-label">Wind Velocity</span>
+                <span class="control-value" id="valWind">1.2 m/s</span>
+            </div>
+            <input type="range" id="ctrlWind" min="0" max="5" value="1.2" step="0.1" aria-label="Wind Velocity">
+        </div>
+    </aside>
+
+    <main class="center-workspace" role="main" aria-label="Interactive Ecosystem Simulation">
+        <canvas id="simulationCanvas"></canvas>
+        <div class="sim-overlay">
+            <div class="sim-badge" id="modeBadge">HUMAN VISION</div>
+        </div>
+        <div class="sim-instruction" id="simInstruction">
+            Interact: Click a flower to induce a localized stress event.
+        </div>
+    </main>
+
+    <aside class="panel sidebar-right glass-panel" role="complementary" aria-label="Live Discoveries">
+        <div class="section-title">Live Discoveries</div>
+        <div id="discoveryFeed" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="discovery-card" style="border-left-color: var(--text-dark);">
+                <div class="discovery-tag" style="color: var(--text-dark);">System Ready</div>
+                <div class="discovery-title">Observation Mode Active</div>
+                <div class="discovery-desc">Adjust environmental parameters or change perception filters to reveal hidden biological communications.</div>
+            </div>
+        </div>
+    </aside>
+
+    <footer class="panel bottom-dock" role="contentinfo" aria-label="Ecosystem Analytics">
+        <div class="metric-card">
+            <div class="metric-label">Pollinator Traffic</div>
+            <div class="metric-value" id="metTraffic">Normal</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Bloom Health</div>
+            <div class="metric-value highlight" id="metBloom">95%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Stress Index</div>
+            <div class="metric-value" id="metStress">Low</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">VOC Emissions</div>
+            <div class="metric-value" id="metVoc">Baseline</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Active Signals</div>
+            <div class="metric-value" id="metSignals">0</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Frame Rate</div>
+            <div class="metric-value" id="metFps">60 FPS</div>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * FLORAL LANGUAGE LAB - CORE ENGINE
+         * Architecture:
+         * 1. State Management
+         * 2. Ecosystem Entities (Flower, Pollinator, ChemicalWave)
+         * 3. Render Pipeline (Modes)
+         * 4. UI/Event Binding
+         */
+
+        // --- 1. STATE & UTILS ---
+        const State = {
+            mode: 'human', // human, bee, thermal, chemical, network
+            time: 12.0,
+            temp: 24,
+            pollinatorDensity: 30,
+            wind: 1.2,
+            globalStress: 0,
+            activeSignals: 0,
+            discoveries: new Set(),
+            metrics: { fps: 60, frames: 0, lastTime: performance.now() }
+        };
+
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Optimize performance
+        
+        let width, height;
+        const resize = () => {
+            const parent = canvas.parentElement;
+            width = canvas.clientWidth || parent?.clientWidth || parent?.offsetWidth || 800;
+            height = canvas.clientHeight || parent?.clientHeight || parent?.offsetHeight || 600;
+            // Handle high-DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            initEcosystem();
+        };
+        window.addEventListener('resize', resize);
+
+        const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+        const mapRange = (val, in_min, in_max, out_min, out_max) => (val - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+
+        // --- 2. ENTITIES ---
+        
+        class Flower {
+            constructor(x, y, isNightBloomer = false) {
+                this.x = x;
+                this.baseY = y;
+                this.isNightBloomer = isNightBloomer;
+                this.size = 20 + Math.random() * 15;
+                this.stemHeight = 100 + Math.random() * 100;
+                this.swayPhase = Math.random() * Math.PI * 2;
+                this.petals = 5 + Math.floor(Math.random() * 3);
+                
+                // Genetics
+                const hues = [340, 10, 45, 320]; // Pinks, reds, yellows, purples
+                this.hue = isNightBloomer ? 200 : hues[Math.floor(Math.random() * hues.length)];
+                
+                // Dynamics
+                this.bloomPhase = 1.0;
+                this.stressLevel = 0; // 0 to 1
+                this.temp = 24;
+            }
+
+            update(time, envTemp, wind) {
+                // Circadian Rhythm
+                let targetBloom = 1.0;
+                if (this.isNightBloomer) {
+                    if (time > 6 && time < 19) targetBloom = 0.1; // Close during day
+                } else {
+                    if (time < 5 || time > 20) targetBloom = 0.2; // Close at night
+                }
+                
+                // Heat Stress
+                if (envTemp > 38) {
+                    targetBloom *= 0.5;
+                    this.stressLevel = Math.min(1.0, this.stressLevel + 0.01);
+                } else {
+                    this.stressLevel = Math.max(0, this.stressLevel - 0.005);
+                }
+
+                this.bloomPhase = lerp(this.bloomPhase, targetBloom, 0.05);
+                
+                // Thermal signature lerps to environment temp, spikes if stressed
+                let targetTemp = envTemp + (this.stressLevel * 10);
+                this.temp = lerp(this.temp, targetTemp, 0.05);
+
+                // Wind sway calculate current top position
+                this.swayPhase += wind * 0.05;
+                this.currentX = this.x + Math.sin(this.swayPhase) * (this.stemHeight * 0.2 * wind);
+                this.currentY = this.baseY - this.stemHeight;
+            }
+
+            draw(ctx, mode) {
+                const cx = this.currentX;
+                const cy = this.currentY;
+
+                // STEM
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.baseY);
+                ctx.quadraticCurveTo(this.x, this.baseY - this.stemHeight*0.5, cx, cy);
+                ctx.lineWidth = 4;
+                
+                if (mode === 'human') ctx.strokeStyle = '#22C55E';
+                else if (mode === 'bee') ctx.strokeStyle = '#334155';
+                else if (mode === 'thermal') ctx.strokeStyle = `hsl(220, 50%, ${mapRange(this.temp, 10, 40, 20, 80)}%)`;
+                else ctx.strokeStyle = '#1E293B';
+                ctx.stroke();
+
+                // FLOWER
+                ctx.save();
+                ctx.translate(cx, cy);
+                
+                // Thermal aura / Chemical aura
+                if (mode === 'thermal') {
+                    ctx.beginPath();
+                    ctx.arc(0,0, this.size * 2, 0, Math.PI*2);
+                    let heatHue = mapRange(this.temp, 15, 45, 240, 0); // Blue to Red
+                    let rad = ctx.createRadialGradient(0,0,0, 0,0,this.size*2);
+                    rad.addColorStop(0, `hsla(${heatHue}, 100%, 60%, 0.5)`);
+                    rad.addColorStop(1, `hsla(${heatHue}, 100%, 60%, 0)`);
+                    ctx.fillStyle = rad;
+                    ctx.fill();
+                }
+
+                // Petals
+                for (let i = 0; i < this.petals; i++) {
+                    ctx.rotate((Math.PI * 2) / this.petals);
+                    
+                    ctx.beginPath();
+                    // Draw petal shape
+                    let petalLen = this.size * this.bloomPhase;
+                    ctx.ellipse(0, -petalLen/2, this.size*0.3, petalLen/2, 0, 0, Math.PI*2);
+                    
+                    if (mode === 'human') {
+                        ctx.fillStyle = `hsl(${this.hue}, 80%, ${this.isNightBloomer ? 90 : 60}%)`;
+                        if (this.stressLevel > 0.5) ctx.fillStyle = `hsl(${this.hue}, 40%, 40%)`; // wilted
+                    } 
+                    else if (mode === 'bee' || mode === 'network') {
+                        // UV Vision shifts reds dark, blues glow
+                        let shifted = (this.hue + 180) % 360;
+                        ctx.fillStyle = mode === 'network' ? `hsla(${shifted}, 60%, 30%, 0.5)` : `hsl(${shifted}, 60%, 30%)`;
+                    }
+                    else if (mode === 'chemical') {
+                        ctx.fillStyle = `rgba(30, 41, 59, 0.8)`;
+                    }
+                    else if (mode === 'thermal') {
+                        let heatHue = mapRange(this.temp, 15, 45, 240, 0);
+                        ctx.fillStyle = `hsl(${heatHue}, 80%, 50%)`;
+                    }
+                    ctx.fill();
+
+                    // Nectar Guides (UV)
+                    if ((mode === 'bee' || mode === 'network') && this.bloomPhase > 0.5 && !this.isNightBloomer) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -petalLen*0.8);
+                        ctx.lineTo(0, -petalLen*0.2);
+                        ctx.strokeStyle = '#38BDF8'; // Neon Cyan
+                        ctx.lineWidth = 2;
+                        ctx.shadowColor = '#38BDF8';
+                        ctx.shadowBlur = 10;
+                        ctx.stroke();
+                        ctx.shadowBlur = 0; // reset
+                    }
+                }
+
+                // Center (Pollen/Nectar)
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 0.25, 0, Math.PI*2);
+                if (mode === 'human') ctx.fillStyle = '#F59E0B';
+                else if (mode === 'bee' || mode === 'network') {
+                    ctx.fillStyle = '#0F172A'; // UV absorbs completely (dark center)
+                    ctx.strokeStyle = '#A78BFA';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                else if (mode === 'chemical') ctx.fillStyle = this.stressLevel > 0.2 ? '#EF4444' : '#64748B';
+                else if (mode === 'thermal') ctx.fillStyle = '#FFFFFF'; // Hottest part
+                ctx.fill();
+
+                // Night Bloomer Bioluminescence
+                if (this.isNightBloomer && State.time < 6 && (mode === 'human' || mode === 'network')) {
+                    ctx.beginPath();
+                    ctx.arc(0,0, this.size, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+                    ctx.shadowColor = '#38BDF8';
+                    ctx.shadowBlur = 20;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class Pollinator {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * (height - 100);
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.trail = [];
+                this.target = null;
+            }
+
+            update(flowers) {
+                // Find open flower
+                if (!this.target || Math.random() < 0.05) {
+                    let openFlowers = flowers.filter(f => f.bloomPhase > 0.5);
+                    if (openFlowers.length > 0) {
+                        this.target = openFlowers[Math.floor(Math.random() * openFlowers.length)];
+                    }
+                }
+
+                if (this.target) {
+                    let dx = this.target.currentX - this.x;
+                    let dy = this.target.currentY - this.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist > 5) {
+                        this.vx += (dx / dist) * 0.3;
+                        this.vy += (dy / dist) * 0.3;
+                    }
+                }
+
+                // Physics
+                this.vx *= 0.92;
+                this.vy *= 0.92;
+                this.x += this.vx + (Math.random() - 0.5)*2; // erratic bee motion
+                this.y += this.vy + (Math.random() - 0.5)*2;
+
+                // Keep in bounds
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = 0;
+
+                // Trails
+                this.trail.push({x: this.x, y: this.y});
+                if (this.trail.length > 15) this.trail.shift();
+            }
+
+            draw(ctx, mode) {
+                // Sleep at night
+                if (State.time < 5 || State.time > 19) return;
+
+                if (mode === 'bee' || mode === 'network') {
+                    // Draw flight paths (WOW moment)
+                    if (this.trail.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                        for(let i=1; i<this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.lineWidth = 1.5;
+                        ctx.setLineDash([2, 4]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
+                if (mode === 'human') ctx.fillStyle = '#F59E0B';
+                else if (mode === 'bee' || mode === 'network') {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.shadowColor = '#FFFFFF';
+                    ctx.shadowBlur = 8;
+                }
+                else if (mode === 'thermal') ctx.fillStyle = '#EF4444'; // Hot insect
+                else ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        class ChemicalSignal {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.opacity = 1.0;
+                this.active = true;
+            }
+
+            update(flowers) {
+                this.radius += 2 + State.wind; // wind spreads it faster
+                this.opacity -= 0.005;
+                if (this.opacity <= 0) this.active = false;
+
+                // Cascade logic: infect other flowers
+                if (this.opacity > 0.5) {
+                    flowers.forEach(f => {
+                        let d = Math.hypot(f.currentX - this.x, f.currentY - this.y);
+                        // If ring hits flower and it's not highly stressed
+                        if (Math.abs(d - this.radius) < 5 && f.stressLevel < 0.5) {
+                            f.stressLevel = 1.0; // induce stress
+                            triggerDiscovery('cascade');
+                            // 10% chance to emit its own signal (chain reaction)
+                            if (Math.random() < 0.1) {
+                                ecosystem.signals.push(new ChemicalSignal(f.currentX, f.currentY));
+                            }
+                        }
+                    });
+                }
+            }
+
+            draw(ctx, mode) {
+                if (mode !== 'chemical' && mode !== 'network') return;
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(167, 139, 250, ${this.opacity})`; // Secondary color (Purple)
+                ctx.lineWidth = 3;
+                if (mode === 'network') {
+                    ctx.shadowColor = '#A78BFA';
+                    ctx.shadowBlur = 10;
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // --- 3. ECOSYSTEM MANAGER ---
+        const ecosystem = {
+            flowers: [],
+            pollinators: [],
+            signals: [],
+            particles: [] // Background dust/pollen
+        };
+
+        function initEcosystem() {
+            ecosystem.flowers = [];
+            const numFlowers = Math.floor(width / 70);
+            for(let i=0; i<numFlowers; i++) {
+                let x = 50 + (i * (width - 100) / numFlowers) + (Math.random()*20 - 10);
+                ecosystem.flowers.push(new Flower(x, height, i % 6 === 0)); // 1 in 6 is night bloomer
+            }
+            updatePollinators();
+            
+            // Background particles
+            ecosystem.particles = [];
+            for(let i=0; i<50; i++) {
+                ecosystem.particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    s: Math.random() * 2,
+                    vx: (Math.random()-0.5) * 0.5,
+                    vy: Math.random() * -0.5
+                });
+            }
+        }
+
+        function updatePollinators() {
+            const targetCount = Math.floor(State.pollinatorDensity * 0.6); // Scale visual count
+            while(ecosystem.pollinators.length < targetCount) ecosystem.pollinators.push(new Pollinator());
+            while(ecosystem.pollinators.length > targetCount) ecosystem.pollinators.pop();
+        }
+
+        // --- 4. ENGINE LOOP ---
+        function render(timestamp) {
+            // FPS Calculation
+            State.metrics.frames++;
+            if (timestamp - State.metrics.lastTime >= 1000) {
+                document.getElementById('metFps').innerText = `${State.metrics.frames} FPS`;
+                State.metrics.frames = 0;
+                State.metrics.lastTime = timestamp;
+            }
+
+            // --- 4a. BACKGROUND / ATMOSPHERE ---
+            let bgLight = 1.0;
+            if (State.time < 6 || State.time > 19) bgLight = 0.1; // Night
+            else if (State.time >= 6 && State.time < 8) bgLight = 0.5; // Dawn
+            else if (State.time > 17 && State.time <= 19) bgLight = 0.5; // Dusk
+
+            if (State.mode === 'human') {
+                // Sky gradient
+                let r = Math.floor(lerp(5, 135, bgLight));
+                let g = Math.floor(lerp(10, 206, bgLight));
+                let b = Math.floor(lerp(20, 235, bgLight));
+                let grad = ctx.createLinearGradient(0,0, 0,height);
+                grad.addColorStop(0, `rgb(${r},${g},${b})`);
+                grad.addColorStop(1, '#07111F'); // ground
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+            } 
+            else if (State.mode === 'bee') {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.3)'; // Motion blur effect
+                ctx.fillRect(0, 0, width, height);
+            }
+            else {
+                ctx.fillStyle = '#07111F'; // Dark for thermal/chem/network
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // Compositing for modes
+            if (State.mode === 'bee' || State.mode === 'network') ctx.globalCompositeOperation = 'screen';
+            else ctx.globalCompositeOperation = 'source-over';
+
+            // --- 4b. PARTICLES (Pollen/Dust) ---
+            if (State.mode === 'human' || State.mode === 'network') {
+                ctx.fillStyle = `rgba(255, 255, 255, ${State.mode === 'network' ? 0.4 : 0.1})`;
+                ecosystem.particles.forEach(p => {
+                    p.x += p.vx + (State.wind * 0.5);
+                    p.y += p.vy;
+                    if (p.y < 0) p.y = height;
+                    if (p.x > width) p.x = 0;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.s, 0, Math.PI*2);
+                    ctx.fill();
+                });
+            }
+
+            // --- 4c. ENTITY UPDATES ---
+            let totalStress = 0;
+            let openCount = 0;
+
+            ecosystem.flowers.forEach(f => {
+                f.update(State.time, State.temp, State.wind);
+                f.draw(ctx, State.mode);
+                totalStress += f.stressLevel;
+                if (f.bloomPhase > 0.5) openCount++;
+            });
+
+            ecosystem.pollinators.forEach(p => {
+                p.update(ecosystem.flowers);
+                p.draw(ctx, State.mode);
+            });
+
+            ecosystem.signals.forEach(s => {
+                s.update(ecosystem.flowers);
+                s.draw(ctx, State.mode);
+            });
+            ecosystem.signals = ecosystem.signals.filter(s => s.active);
+
+            // --- 4d. UPDATE UI METRICS ---
+            State.globalStress = totalStress / ecosystem.flowers.length;
+            
+            // Dashboard
+            const metStress = document.getElementById('metStress');
+            if (State.globalStress > 0.5) { metStress.innerText = 'CRITICAL'; metStress.className = 'metric-value warning'; }
+            else if (State.globalStress > 0.2) { metStress.innerText = 'ELEVATED'; metStress.className = 'metric-value highlight'; }
+            else { metStress.innerText = 'LOW'; metStress.className = 'metric-value'; }
+
+            document.getElementById('metBloom').innerText = Math.round((openCount / ecosystem.flowers.length) * 100) + '%';
+            document.getElementById('metSignals').innerText = ecosystem.signals.length;
+            
+            const vocLvl = ecosystem.signals.length > 3 ? 'HIGH' : (ecosystem.signals.length > 0 ? 'ACTIVE' : 'BASELINE');
+            const metVoc = document.getElementById('metVoc');
+            metVoc.innerText = vocLvl;
+            metVoc.className = ecosystem.signals.length > 0 ? 'metric-value highlight' : 'metric-value';
+
+            let trafficStr = 'Normal';
+            if (State.time < 5 || State.time > 19) trafficStr = 'Dormant';
+            else if (State.pollinatorDensity > 70) trafficStr = 'Heavy';
+            document.getElementById('metTraffic').innerText = trafficStr;
+
+            // Reset composite
+            ctx.globalCompositeOperation = 'source-over';
+
+            requestAnimationFrame(render);
+        }
+
+        // --- 5. INTERACTION & DISCOVERY SYSTEM ---
+
+        function formatTime(val) {
+            let h = Math.floor(val);
+            let m = val % 1 === 0 ? "00" : "30";
+            let ampm = h >= 12 ? "PM" : "AM";
+            let dH = h % 12 || 12;
+            return `${dH}:${m} ${ampm}`;
+        }
+
+        function triggerDiscovery(id) {
+            if (State.discoveries.has(id)) return;
+            State.discoveries.add(id);
+
+            const content = {
+                'bee': { tag: 'WOW Moment', title: 'UV Landing Guides Revealed', desc: 'Bees see in the ultraviolet spectrum. Flowers have evolved invisible runway patterns pointing directly to nectar.'},
+                'stress': { tag: 'Plant Defense', title: 'Stress Response Triggered', desc: 'The damaged flower is increasing its internal temperature and preparing to release volatile organic compounds (VOCs).'},
+                'cascade': { tag: 'WOW Moment', title: 'Chemical Warning Cascade', desc: 'Neighboring plants detected the airborne stress signal and are preemptively activating their own defenses.'},
+                'night': { tag: 'Circadian Biology', title: 'Night Bloom Species Active', desc: 'As daylight drops, diurnal flowers close to protect pollen, while bioluminescent nocturnal species open for moths.'},
+                'rush': { tag: 'WOW Moment', title: 'Pollinator Traffic Surge', desc: 'High density reveals complex flow networks. Pollinators optimize routes based on floral visual cues.'},
+                'network': { tag: 'WOW Moment', title: 'Living Information Network', desc: 'Combining UV, chemical, and thermal views reveals that this "quiet" field is actually a massive, noisy communication grid.'}
+            };
+
+            const d = content[id];
+            if (!d) return;
+
+            const feed = document.getElementById('discoveryFeed');
+            const card = document.createElement('div');
+            card.className = 'discovery-card';
+            card.innerHTML = `
+                <div class="discovery-tag">${d.tag}</div>
+                <div class="discovery-title">${d.title}</div>
+                <div class="discovery-desc">${d.desc}</div>
+            `;
+            feed.insertBefore(card, feed.firstChild);
+
+            // Update Counter
+            document.getElementById('discoveryCount').innerText = `${State.discoveries.size}/6 Discoveries`;
+        }
+
+        // Event Listeners
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                const target = e.currentTarget;
+                target.classList.add('active');
+                State.mode = target.dataset.mode;
+                
+                // Update Badge
+                document.getElementById('modeBadge').innerText = target.innerText.trim().toUpperCase();
+
+                // Trigger Discoveries
+                if (State.mode === 'bee') triggerDiscovery('bee');
+                if (State.mode === 'network') triggerDiscovery('network');
+            });
+        });
+
+        document.getElementById('ctrlTime').addEventListener('input', (e) => {
+            State.time = parseFloat(e.target.value);
+            const str = formatTime(State.time);
+            document.getElementById('valTime').innerText = str;
+            document.getElementById('headerTime').innerText = str;
+            
+            if (State.time > 20 || State.time < 4) triggerDiscovery('night');
+        });
+
+        document.getElementById('ctrlTemp').addEventListener('input', (e) => {
+            State.temp = parseInt(e.target.value);
+            document.getElementById('valTemp').innerText = `${State.temp}°C`;
+        });
+
+        document.getElementById('ctrlPollinators').addEventListener('input', (e) => {
+            State.pollinatorDensity = parseInt(e.target.value);
+            document.getElementById('valPollinators').innerText = `${State.pollinatorDensity}%`;
+            updatePollinators();
+            if (State.pollinatorDensity > 80) triggerDiscovery('rush');
+        });
+
+        document.getElementById('ctrlWind').addEventListener('input', (e) => {
+            State.wind = parseFloat(e.target.value);
+            document.getElementById('valWind').innerText = `${State.wind.toFixed(1)} m/s`;
+        });
+
+        // Click to stress flower
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            // Scale mouse coords to internal canvas resolution
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            const dpr = window.devicePixelRatio || 1;
+
+            // Find closest flower
+            let closest = null;
+            let minDist = Infinity;
+            ecosystem.flowers.forEach(f => {
+                // Check distance to top of flower
+                let dist = Math.hypot((f.currentX * dpr) - mx, (f.currentY * dpr) - my);
+                if (dist < minDist) { minDist = dist; closest = f; }
+            });
+
+            if (closest && minDist < 100 * dpr) {
+                closest.stressLevel = 1.0;
+                // Emit chemical signal
+                ecosystem.signals.push(new ChemicalSignal(closest.currentX, closest.currentY));
+                
+                triggerDiscovery('stress');
+                
+                // Hide instruction
+                document.getElementById('simInstruction').style.opacity = '0';
+                
+                // Auto switch to chemical view to show the user if they haven't seen it yet
+                if (!State.discoveries.has('cascade') && State.mode === 'human') {
+                    document.querySelector('[data-mode="chemical"]').click();
+                }
+            }
+        });
+
+        // Initialize — ResizeObserver for reliable iframe rendering
+        let renderStarted = false;
+        const startRender = () => {
+            if (canvas.clientWidth > 0 && canvas.clientHeight > 0 && !renderStarted) {
+                renderStarted = true;
+                resize();
+                requestAnimationFrame(render);
+            }
+        };
+        if ('ResizeObserver' in window) {
+            const ro = new ResizeObserver(() => startRender());
+            ro.observe(canvas);
+        }
+        [100, 300, 600, 1200].forEach(d => setTimeout(startRender, d));
+
+    </script>
+</body>
+</html>

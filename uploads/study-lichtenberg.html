@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lichtenberg</title>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}canvas{display:block;position:fixed;top:0;left:0}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W,H;
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+resize(); window.addEventListener('resize',resize);
+
+// ─── Seeded RNG ───────────────────────────────────────────
+let seed=Date.now()|0;
+function rng(){ seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+
+// ─── Branch generation ───────────────────────────────────
+// Returns flat array of segments in BFS order (propagation order)
+let branches=[], originX=0, originY=0;
+
+function generate(){
+  seed=Date.now()|0; // fresh random each cycle
+  branches=[];
+
+  // Pick strike origin: somewhere along top 15% of screen
+  originX = W*(0.25+rng()*0.5);
+  originY = H*(0.04+rng()*0.08);
+
+  // BFS queue
+  const queue=[{
+    x: originX, y: originY,
+    angle: Math.PI/2 + (rng()-0.5)*0.4, // mostly downward
+    len: Math.min(W,H)*(0.10+rng()*0.06),
+    depth: 0
+  }];
+
+  const MAX_DEPTH=10;
+
+  while(queue.length > 0){
+    const node=queue.shift();
+    if(node.depth > MAX_DEPTH || node.len < 3) continue;
+
+    const ex=node.x+Math.cos(node.angle)*node.len;
+    const ey=node.y+Math.sin(node.angle)*node.len;
+
+    // Keep within canvas bounds (mostly — allow slight overshoot)
+    if(ex < -W*0.2 || ex > W*1.2 || ey < -H*0.1 || ey > H*1.05) continue;
+
+    branches.push({
+      x1:node.x, y1:node.y,
+      x2:ex, y2:ey,
+      depth:node.depth,
+      len:node.len
+    });
+
+    // Spawn children
+    const nChildren = node.depth < 3 ? 2+(rng()<0.45?1:0) : node.depth < 6 ? 2 : 1+(rng()<0.6?1:0);
+    for(let c=0; c<nChildren; c++){
+      const spread = node.depth < 3 ? (rng()-0.5)*0.65 : (rng()-0.5)*1.5;
+      const lenDecay = 0.58+rng()*0.16;
+      queue.push({
+        x: ex, y: ey,
+        angle: node.angle+spread,
+        len: node.len*lenDecay,
+        depth: node.depth+1
+      });
+    }
+  }
+}
+generate();
+
+// ─── Drawing ─────────────────────────────────────────────
+const CYCLE=3800; // ms
+// Phase boundaries (fraction of cycle)
+const P_DARK1  = 0.08;
+const P_STRIKE = 0.26; // strike completes here (0.26-0.08=0.18 × 3800ms = 684ms < 1s ✓)
+const P_HOLD   = 0.72;
+const P_FADE   = 0.90;
+// 0.90-1.0 = dark again
+
+let lastPhase='dark', lastCycleFloor=-1;
+
+function drawBranches(count, lineAlpha, glowAlpha, glowWidth){
+  const n=Math.min(count, branches.length);
+  const MAX_D=branches.reduce((m,b)=>Math.max(m,b.depth),0)||1;
+
+  // Wide glow pass
+  ctx.save();
+  ctx.shadowBlur=20;
+  ctx.shadowColor='rgba(130,190,255,0.7)';
+  for(let i=0;i<n;i++){
+    const b=branches[i];
+    const t=1-b.depth/MAX_D;
+    ctx.strokeStyle=`rgba(90,160,255,${glowAlpha*t*0.55})`;
+    ctx.lineWidth=glowWidth+t*glowWidth;
+    ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(b.x1,b.y1); ctx.lineTo(b.x2,b.y2); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Crisp bright core
+  for(let i=0;i<n;i++){
+    const b=branches[i];
+    const t=1-b.depth/MAX_D;
+    const lum=b.depth<2?255:235;
+    ctx.strokeStyle=`rgba(${lum},${Math.min(255,lum+10)},255,${lineAlpha*(0.4+t*0.6)})`;
+    ctx.lineWidth=b.depth<2?2.5:b.depth<5?1.5:0.8;
+    ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(b.x1,b.y1); ctx.lineTo(b.x2,b.y2); ctx.stroke();
+  }
+}
+
+function drawOriginFlash(alpha){
+  const g=ctx.createRadialGradient(originX,originY,0,originX,originY,45);
+  g.addColorStop(0,`rgba(255,255,255,${alpha*0.95})`);
+  g.addColorStop(0.3,`rgba(180,220,255,${alpha*0.5})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;
+  ctx.fillRect(originX-45,originY-45,90,90);
+}
+
+function drawLoop(){
+  const now=performance.now();
+  const p=(now%CYCLE)/CYCLE;
+
+  // Detect new cycle → regenerate
+  const cycleFloor=Math.floor(now/CYCLE);
+  if(cycleFloor !== lastCycleFloor){
+    lastCycleFloor=cycleFloor;
+    generate();
+  }
+
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+
+  if(p < P_DARK1){
+    // Dark — nothing
+
+  } else if(p < P_STRIKE){
+    // Fast strike reveal: branches appear in propagation order
+    const t=(p-P_DARK1)/(P_STRIKE-P_DARK1); // 0→1
+    // Use easeIn so strike ACCELERATES (tip rush feels violent)
+    const tEased=t*t;
+    const count=Math.ceil(tEased*branches.length);
+    drawBranches(count, 1, 0.5+t*0.5, 3);
+    drawOriginFlash(Math.exp(-t*5)*0.9);
+
+  } else if(p < P_HOLD){
+    // Full structure + pulsing glow
+    const t=(p-P_STRIKE)/(P_HOLD-P_STRIKE);
+    const glowPulse=1.0+Math.sin(t*Math.PI*2)*0.15;
+    drawBranches(branches.length, 1, glowPulse*0.9, 3);
+
+  } else if(p < P_FADE){
+    // Fade out
+    const t=(p-P_HOLD)/(P_FADE-P_HOLD);
+    const alpha=1-t*t;
+    drawBranches(branches.length, alpha, alpha*0.8, 3);
+
+  }
+  // else: dark until next cycle
+
+  requestAnimationFrame(drawLoop);
+}
+drawLoop();
+</script>
+</body>
+</html>

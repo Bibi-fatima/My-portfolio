@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse</title>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}canvas{display:block;position:fixed;top:0;left:0}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W,H,segments=[];
+
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; buildTree(); }
+window.addEventListener('resize',resize);
+
+// ─── Build vascular tree ─────────────────────────────────
+function buildTree(){
+  segments=[];
+  const cx=W/2, cy=H/2;
+  const maxR=Math.min(W,H)*0.44;
+  let seed=12345;
+  function sr(){ seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+
+  function branch(x,y,angle,len,dist,depth){
+    if(depth>9||len<4) return;
+    const ex=x+Math.cos(angle)*len;
+    const ey=y+Math.sin(angle)*len;
+    const endDist=dist+len;
+    segments.push({x1:x,y1:y,x2:ex,y2:ey,dist,endDist,depth,len});
+    const spread=0.36+depth*0.028;
+    const lf=0.62+sr()*0.10;
+    branch(ex,ey,angle-spread,len*lf,endDist,depth+1);
+    branch(ex,ey,angle+spread,len*lf,endDist,depth+1);
+    if(depth<4&&sr()<0.35)
+      branch(ex,ey,angle+(sr()-0.5)*0.45,len*0.55,endDist,depth+2);
+  }
+
+  // 8 primary arteries
+  const mainLen=maxR*0.20;
+  const angles=[-Math.PI/2,-Math.PI/2+0.55,-Math.PI/2-0.55,
+                Math.PI/5,-Math.PI/5, Math.PI/2,
+                Math.PI*0.85,-Math.PI*0.85];
+  for(const a of angles) branch(cx,cy,a,mainLen,0,0);
+
+  // Normalize distances: 0=origin, 1=tip
+  const maxDist=Math.max(...segments.map(s=>s.endDist))||1;
+  for(const s of segments){
+    s.nd   = s.dist   / maxDist; // normalized start dist
+    s.ndEnd= s.endDist/ maxDist; // normalized end dist
+    s.ndMid=(s.nd+s.ndEnd)*0.5;
+  }
+}
+
+// ─── Heartbeat rhythm ────────────────────────────────────
+// Double-beat (lub-dub), ~2.2s cycle
+const BEAT_MS=2200;
+
+// Wave envelope: gaussian traveling outward
+// waveFront=0→1 across first half of beat
+function pulseAt(ndMid, waveFront, sigma){
+  const delta=waveFront - ndMid;
+  // Leading edge: strong, trailing: fades fast
+  if(delta < 0) return 0;
+  return Math.exp(-(delta*delta)/(2*sigma*sigma));
+}
+
+// Second beat (softer, shorter)
+const BEAT2_OFFSET=0.30; // fraction of cycle after first beat
+const BEAT2_SCALE=0.52;
+
+function beatState(beatPhase){
+  // beatPhase: 0..1 within one full heartbeat cycle
+  // Returns {waveFront1, waveFront2, alpha1, alpha2}
+  const w1 = beatPhase<0.48 ? beatPhase/0.48 : 0;
+  const b2start=BEAT2_OFFSET;
+  const w2 = beatPhase>=b2start && beatPhase<b2start+0.38
+    ? (beatPhase-b2start)/0.38 : 0;
+  return {w1, w2};
+}
+
+// ─── Draw ────────────────────────────────────────────────
+function drawLoop(){
+  const now=performance.now();
+  const beatPhase=(now%BEAT_MS)/BEAT_MS;
+  const {w1,w2}=beatState(beatPhase);
+
+  ctx.fillStyle='rgba(0,0,0,0.82)'; ctx.fillRect(0,0,W,H);
+
+  const SIGMA=0.055;
+
+  for(const s of segments){
+    const p1=pulseAt(s.ndMid, w1, SIGMA);
+    const p2=pulseAt(s.ndMid, w2, SIGMA)*BEAT2_SCALE;
+    const pulse=Math.min(1, p1+p2);
+
+    // Base dim structure
+    const baseLum=Math.max(0, 0.38-s.depth*0.030);
+
+    // Red channel: base + pulse
+    const r=Math.min(255, Math.round(baseLum*70  + pulse*255));
+    const g=Math.round(                 pulse*75);
+    const b=Math.round(                 pulse*90);
+    const a=Math.min(1, baseLum + pulse);
+
+    ctx.strokeStyle=`rgba(${r},${g},${b},${a})`;
+    ctx.lineWidth=Math.max(0.5, 2.8-s.depth*0.24);
+    ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(s.x1,s.y1); ctx.lineTo(s.x2,s.y2); ctx.stroke();
+  }
+
+  // Origin flash on each beat
+  const cx=W/2, cy=H/2;
+  for(const [wf,scale] of [[w1,1],[w2,BEAT2_SCALE]]){
+    if(wf<0.22 && wf>0){
+      const intensity=Math.exp(-(wf/0.06)*(wf/0.06))*scale;
+      const g=ctx.createRadialGradient(cx,cy,0,cx,cy,60);
+      g.addColorStop(0,`rgba(255,90,110,${intensity*0.92})`);
+      g.addColorStop(0.4,`rgba(200,40,60,${intensity*0.35})`);
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(cx-60,cy-60,120,120);
+    }
+  }
+
+  requestAnimationFrame(drawLoop);
+}
+resize();
+drawLoop();
+</script>
+</body>
+</html>

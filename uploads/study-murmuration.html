@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murmuration</title>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}canvas{display:block;position:fixed;top:0;left:0}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W,H;
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+resize(); window.addEventListener('resize',resize);
+
+// ─── Config ───────────────────────────────────────────────
+const N=1200;
+const VISUAL=52, AVOID=14, MAX_SPD=2.6, MIN_SPD=1.2;
+const ALIGN=0.040, COHESE=0.006, SEP=0.14;
+const HOME=0.00035;     // gentle home pull
+const PRED_FEAR=145, PRED_FORCE=0.28;
+const CELL=VISUAL;      // spatial grid cell size
+
+// ─── State ────────────────────────────────────────────────
+const bx=new Float32Array(N), by=new Float32Array(N);
+const vx=new Float32Array(N), vy=new Float32Array(N);
+
+function init(){
+  for(let i=0;i<N;i++){
+    bx[i]=W*0.2+Math.random()*W*0.6;
+    by[i]=H*0.2+Math.random()*H*0.6;
+    const a=Math.random()*Math.PI*2;
+    vx[i]=Math.cos(a)*1.8; vy[i]=Math.sin(a)*1.8;
+  }
+}
+
+// ─── Spatial grid ────────────────────────────────────────
+let gCols=0, gRows=0;
+let gridCount, gridHead, gridNext;
+
+function buildGrid(){
+  gCols=Math.ceil(W/CELL)+1;
+  gRows=Math.ceil(H/CELL)+1;
+  const cells=gCols*gRows;
+  if(!gridCount||gridCount.length<cells){
+    gridCount=new Int32Array(cells);
+    gridHead=new Int32Array(cells).fill(-1);
+    gridNext=new Int32Array(N);
+  }
+}
+
+function fillGrid(){
+  const cells=gCols*gRows;
+  gridCount.fill(0);
+  gridHead.fill(-1);
+  for(let i=0;i<N;i++){
+    const gc=Math.floor(bx[i]/CELL), gr=Math.floor(by[i]/CELL);
+    if(gc<0||gc>=gCols||gr<0||gr>=gRows) continue;
+    const ci=gr*gCols+gc;
+    gridNext[i]=gridHead[ci];
+    gridHead[ci]=i;
+  }
+}
+
+// ─── Predator scripted path ───────────────────────────────
+const SWEEP_MS=5000;
+let sweepCount=0;
+
+function predPos(now){
+  const t=((now%SWEEP_MS)/SWEEP_MS);
+  const phase=sweepCount;
+  // Cycle through 4 sweep directions
+  const mode=phase%4;
+  const ease=t<0.5?t/0.5:1; // 0→1 over first half, then gone
+  const gone=t>0.62;
+  if(gone) return null;
+
+  let px, py;
+  if(mode===0){
+    // Left→right, sine wave path
+    px=W*(-0.08+ease*1.16);
+    py=H*(0.3+Math.sin(ease*Math.PI)*0.4);
+  } else if(mode===1){
+    // Top→bottom diagonal
+    px=W*(0.7-ease*0.4);
+    py=H*(-0.08+ease*1.16);
+  } else if(mode===2){
+    // Right→left
+    px=W*(1.08-ease*1.16);
+    py=H*(0.4+Math.sin(ease*Math.PI+Math.PI)*0.35);
+  } else {
+    // Diagonal cross
+    px=W*(0.1+ease*0.8);
+    py=H*(0.8-ease*0.6);
+  }
+  return {x:px, y:py};
+}
+
+// ─── Step one frame ──────────────────────────────────────
+const ax=new Float32Array(N), ay=new Float32Array(N);
+
+function step(now){
+  const pred=predPos(now);
+  const cx=W/2, cy=H/2;
+
+  fillGrid();
+  ax.fill(0); ay.fill(0);
+
+  for(let i=0;i<N;i++){
+    // Home pull
+    ax[i]+=(cx-bx[i])*HOME;
+    ay[i]+=(cy-by[i])*HOME;
+
+    // Predator flee
+    if(pred){
+      const dx=bx[i]-pred.x, dy=by[i]-pred.y;
+      const d2=dx*dx+dy*dy;
+      if(d2<PRED_FEAR*PRED_FEAR){
+        const d=Math.sqrt(d2)||1;
+        const f=PRED_FORCE*(1-d/PRED_FEAR)*(d<70?2.2:1);
+        ax[i]+=dx/d*f*58; ay[i]+=dy/d*f*58;
+      }
+    }
+
+    // Boids: check 3×3 grid neighborhood
+    const gc=Math.floor(bx[i]/CELL), gr=Math.floor(by[i]/CELL);
+    let avgVx=0,avgVy=0,pcx=0,pcy=0,sx=0,sy=0,nn=0;
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+      const nr=gr+dr, nc=gc+dc;
+      if(nr<0||nr>=gRows||nc<0||nc>=gCols) continue;
+      let j=gridHead[nr*gCols+nc];
+      while(j>=0){
+        if(j!==i){
+          const dx=bx[j]-bx[i], dy=by[j]-by[i];
+          const d2=dx*dx+dy*dy;
+          if(d2<VISUAL*VISUAL){
+            avgVx+=vx[j]; avgVy+=vy[j];
+            pcx+=bx[j]; pcy+=by[j]; nn++;
+            if(d2<AVOID*AVOID){
+              const d=Math.sqrt(d2)||1;
+              sx-=dx/d*(AVOID-d); sy-=dy/d*(AVOID-d);
+            }
+          }
+        }
+        j=gridNext[j];
+      }
+    }
+    if(nn>0){
+      avgVx/=nn; avgVy/=nn; pcx/=nn; pcy/=nn;
+      ax[i]+=(avgVx-vx[i])*ALIGN+(pcx-bx[i])*COHESE+sx*SEP;
+      ay[i]+=(avgVy-vy[i])*ALIGN+(pcy-by[i])*COHESE+sy*SEP;
+    }
+  }
+
+  for(let i=0;i<N;i++){
+    vx[i]+=ax[i]; vy[i]+=ay[i];
+    const spd=Math.sqrt(vx[i]*vx[i]+vy[i]*vy[i])||1;
+    if(spd>MAX_SPD){ vx[i]=vx[i]/spd*MAX_SPD; vy[i]=vy[i]/spd*MAX_SPD; }
+    if(spd<MIN_SPD){ vx[i]=vx[i]/spd*MIN_SPD; vy[i]=vy[i]/spd*MIN_SPD; }
+    bx[i]+=vx[i]; by[i]+=vy[i];
+    if(bx[i]<-60) bx[i]=W+60; if(bx[i]>W+60) bx[i]=-60;
+    if(by[i]<-60) by[i]=H+60; if(by[i]>H+60) by[i]=-60;
+  }
+
+  // Detect sweep end → increment counter
+  const t=(now%SWEEP_MS)/SWEEP_MS;
+  if(t<0.02) sweepCount++;
+}
+
+// ─── Render ───────────────────────────────────────────────
+let lastSweepCheck=0;
+
+function draw(now){
+  ctx.fillStyle='rgba(0,0,0,0.22)';
+  ctx.fillRect(0,0,W,H);
+
+  // Draw birds as tiny lines (velocity direction) — faster than arcs, shows motion
+  const pred=predPos(now);
+  for(let i=0;i<N;i++){
+    const spd=Math.sqrt(vx[i]*vx[i]+vy[i]*vy[i]);
+    const t=Math.min(1,spd/MAX_SPD);
+    const l=50+t*32;
+    ctx.strokeStyle=`hsl(210,${55-t*12}%,${l}%)`;
+    ctx.lineWidth=1.1;
+    ctx.beginPath();
+    ctx.moveTo(bx[i]-vx[i]*1.8, by[i]-vy[i]*1.8);
+    ctx.lineTo(bx[i], by[i]);
+    ctx.stroke();
+  }
+
+  // Predator marker (subtle glow, no hard dot)
+  if(pred){
+    const g=ctx.createRadialGradient(pred.x,pred.y,0,pred.x,pred.y,28);
+    g.addColorStop(0,'rgba(255,80,50,0.4)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(pred.x-28,pred.y-28,56,56);
+  }
+}
+
+function loop(now){
+  // Cap sweep count increment
+  if(Math.floor(now/SWEEP_MS)!==lastSweepCheck){
+    lastSweepCheck=Math.floor(now/SWEEP_MS);
+    sweepCount=lastSweepCheck;
+  }
+  step(now); draw(now);
+  requestAnimationFrame(loop);
+}
+
+buildGrid();
+init();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>about — quantum waveform v2 ambient</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;}
+canvas{display:block;position:fixed;top:0;left:0;}
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 90, 220);
+camera.lookAt(0, -10, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,    'rgba(255,255,255,1)');
+  g.addColorStop(0.08, 'rgba(200,240,255,1)');
+  g.addColorStop(0.25, 'rgba(80,180,255,0.8)');
+  g.addColorStop(0.5,  'rgba(30,100,255,0.3)');
+  g.addColorStop(1,    'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
+}
+
+const COUNT = 35000;
+const geo = new THREE.BufferGeometry();
+const pos = new Float32Array(COUNT * 3);
+const col = new Float32Array(COUNT * 3);
+const px  = new Float32Array(COUNT);
+const pz  = new Float32Array(COUNT);
+const ph  = new Float32Array(COUNT);
+
+for (let i = 0; i < COUNT; i++) {
+  px[i] = (Math.random() - 0.5) * 320;
+  pz[i] = (Math.random() - 0.5) * 320;
+  ph[i] = Math.random() * Math.PI * 2;
+}
+
+const cObj = new THREE.Color();
+
+function waveColor(norm) {
+  // norm clamped -1..1; peaks = bright white-cyan, troughs = electric blue
+  const n = Math.max(-1, Math.min(1, norm));
+  const t = (n + 1) * 0.5; // 0..1
+  if (t < 0.3) {
+    // trough: dark electric blue → blue
+    const s = t / 0.3;
+    cObj.setRGB(0.02 + s * 0.08, 0.05 + s * 0.25, 0.5 + s * 0.4);
+  } else if (t < 0.65) {
+    // mid: blue → vivid cyan
+    const s = (t - 0.3) / 0.35;
+    cObj.setRGB(0.10 + s * 0.10, 0.30 + s * 0.60, 0.90 - s * 0.10);
+  } else {
+    // peak: cyan → white
+    const s = (t - 0.65) / 0.35;
+    cObj.setRGB(0.20 + s * 0.80, 0.90 + s * 0.10, 0.80 + s * 0.20);
+  }
+}
+
+function updateWave(t) {
+  for (let i = 0; i < COUNT; i++) {
+    const x = px[i], z = pz[i];
+    const y =
+      Math.sin(x * 0.04 + t * 1.0 + ph[i] * 0.2) * Math.cos(z * 0.035 + t * 0.65) * 28
+    + Math.sin(x * 0.085 + t * 1.5) * 11
+    + Math.cos(z * 0.06  + t * 0.85) * 9;
+
+    pos[i*3]   = x;
+    pos[i*3+1] = y;
+    pos[i*3+2] = z;
+
+    waveColor(y / 48);
+    col[i*3]   = cObj.r;
+    col[i*3+1] = cObj.g;
+    col[i*3+2] = cObj.b;
+  }
+}
+
+updateWave(0);
+geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+
+const mat = new THREE.PointsMaterial({
+  size: 3.0,
+  vertexColors: true,
+  map: glowTexture(),
+  blending: THREE.AdditiveBlending,
+  transparent: true,
+  depthWrite: false,
+  sizeAttenuation: true,
+});
+const mesh = new THREE.Points(geo, mat);
+mesh.rotation.x = -0.38;
+scene.add(mesh);
+
+let t = 0;
+function anim() {
+  requestAnimationFrame(anim);
+  t += 0.015;
+  updateWave(t);
+  geo.attributes.position.needsUpdate = true;
+  geo.attributes.color.needsUpdate    = true;
+  mesh.rotation.y += 0.0003;
+  renderer.render(scene, camera);
+}
+anim();
+</script>
+</body>
+</html>

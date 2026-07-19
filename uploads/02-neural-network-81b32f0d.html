@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Network · Live Thinking</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#050810;overflow:hidden;font-family:'IBM Plex Mono',monospace;color:#fff;cursor:none;}
+#cursor{position:fixed;width:6px;height:6px;background:#00f5d4;border-radius:50%;pointer-events:none;z-index:999;transform:translate(-50%,-50%);}
+canvas{position:fixed;top:0;left:0;z-index:1;}
+#ui{position:fixed;z-index:10;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+#title{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,52px);letter-spacing:0.2em;color:rgba(255,255,255,0.08);position:fixed;top:28px;left:40px;line-height:1;}
+#subtitle{font-size:9px;letter-spacing:0.25em;color:rgba(0,245,212,0.5);position:fixed;top:72px;left:41px;text-transform:uppercase;}
+#input-wrap{pointer-events:auto;position:relative;}
+#word-input{
+  background:rgba(0,245,212,0.04);
+  border:1px solid rgba(0,245,212,0.2);
+  border-radius:4px;
+  color:#00f5d4;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:18px;
+  letter-spacing:0.15em;
+  padding:16px 24px;
+  outline:none;
+  width:320px;
+  text-align:center;
+  text-transform:uppercase;
+  caret-color:#00f5d4;
+  transition:border-color 0.3s, box-shadow 0.3s;
+}
+#word-input::placeholder{color:rgba(0,245,212,0.25);font-size:12px;letter-spacing:0.2em;}
+#word-input:focus{border-color:rgba(0,245,212,0.6);box-shadow:0 0 30px rgba(0,245,212,0.08);}
+#output-row{display:flex;gap:10px;margin-top:16px;min-height:28px;align-items:center;justify-content:center;}
+.token{font-size:10px;letter-spacing:0.15em;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);transition:all 0.4s ease;text-transform:uppercase;}
+.token.active{background:rgba(0,245,212,0.15);border-color:rgba(0,245,212,0.5);color:#00f5d4;box-shadow:0 0 12px rgba(0,245,212,0.2);}
+#status-row{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);display:flex;gap:28px;}
+.stat{text-align:center;font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.25);text-transform:uppercase;}
+.stat-val{font-size:16px;font-weight:500;color:rgba(0,245,212,0.8);display:block;margin-bottom:3px;font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;}
+#thinking{position:fixed;top:32px;right:40px;font-size:9px;letter-spacing:0.2em;color:rgba(0,245,212,0.5);text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<canvas id="c"></canvas>
+<div id="title">NEURAL NET</div>
+<div id="subtitle">Live inference visualization</div>
+<div id="thinking" id="thinking-label">Idle</div>
+<div id="ui">
+  <div id="input-wrap">
+    <input id="word-input" type="text" placeholder="Type anything..." maxlength="20" autocomplete="off" spellcheck="false">
+    <div id="output-row"></div>
+  </div>
+</div>
+<div id="status-row">
+  <div class="stat"><span class="stat-val" id="s-neurons">0</span>Neurons firing</div>
+  <div class="stat"><span class="stat-val" id="s-layers">6</span>Layers</div>
+  <div class="stat"><span class="stat-val" id="s-synapses">0</span>Synapses active</div>
+  <div class="stat"><span class="stat-val" id="s-conf">—</span>Confidence</div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = innerWidth;
+let H = canvas.height = innerHeight;
+window.addEventListener('resize', () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; buildNetwork(); });
+
+// Cursor
+const cur = document.getElementById('cursor');
+let cx=W/2,cy=H/2;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cur.style.left=cx+'px';cur.style.top=cy+'px';});
+
+// Network architecture
+const LAYERS = [4, 8, 12, 10, 8, 4];
+let nodes = [];
+let edges = [];
+let pulses = [];
+let firingNodes = new Set();
+let activeEdges = new Set();
+
+function buildNetwork() {
+  nodes = [];
+  edges = [];
+  const layerCount = LAYERS.length;
+  const startX = W * 0.12;
+  const endX   = W * 0.88;
+  const stepX  = (endX - startX) / (layerCount - 1);
+
+  LAYERS.forEach((count, li) => {
+    const x = startX + li * stepX;
+    for (let ni = 0; ni < count; ni++) {
+      const y = H/2 + (ni - (count-1)/2) * (H * 0.075);
+      nodes.push({ x, y, layer: li, idx: ni, glow: 0, pulse: 0 });
+    }
+  });
+
+  // Build edges (connect each node to all in next layer)
+  let offset = 0;
+  for (let li = 0; li < layerCount - 1; li++) {
+    const aCount = LAYERS[li], bCount = LAYERS[li+1];
+    const aOff = LAYERS.slice(0, li).reduce((s,v)=>s+v, 0);
+    const bOff = aOff + aCount;
+    for (let a = 0; a < aCount; a++) {
+      for (let b = 0; b < bCount; b++) {
+        edges.push({ from: aOff+a, to: bOff+b, weight: Math.random()*2-1, active: 0 });
+      }
+    }
+  }
+}
+
+buildNetwork();
+
+// Pulse system
+function firePulse(nodeIdx, depth=0) {
+  if (depth > LAYERS.length) return;
+  const node = nodes[nodeIdx];
+  if (!node) return;
+  node.glow = 1;
+  firingNodes.add(nodeIdx);
+  document.getElementById('s-neurons').textContent = firingNodes.size;
+
+  // Propagate to next layer with delay
+  const curLayer = node.layer;
+  if (curLayer < LAYERS.length - 1) {
+    edges.forEach((e, ei) => {
+      if (e.from === nodeIdx && Math.random() > 0.3) {
+        const delay = 60 + Math.random()*80;
+        setTimeout(() => {
+          e.active = 1;
+          activeEdges.add(ei);
+          document.getElementById('s-synapses').textContent = activeEdges.size;
+          setTimeout(() => {
+            firePulse(e.to, depth+1);
+            e.active *= 0.8;
+          }, delay);
+        }, delay * 0.5);
+      }
+    });
+  }
+}
+
+function triggerThinking(word) {
+  firingNodes.clear(); activeEdges.clear();
+  nodes.forEach(n => { n.glow = 0; });
+  edges.forEach(e => { e.active = 0; });
+
+  document.getElementById('thinking').textContent = 'Processing...';
+  document.getElementById('s-conf').textContent = '—';
+
+  // Fire input layer nodes based on char codes
+  const layerSize = LAYERS[0];
+  for (let i = 0; i < layerSize; i++) {
+    const charCode = (word.charCodeAt(i % word.length) || 65) / 122;
+    if (Math.random() < charCode) {
+      setTimeout(() => firePulse(i), i * 80);
+    }
+  }
+
+  setTimeout(() => {
+    const conf = Math.min(99, 60 + Math.floor(Math.random()*38));
+    document.getElementById('s-conf').textContent = conf + '%';
+    document.getElementById('thinking').textContent = 'Output ready';
+    updateTokens(word, conf);
+  }, 1200);
+}
+
+// Word associations
+const associations = {
+  default: ['pattern','signal','output','weight','bias','relu'],
+  love: ['emotion','bond','warmth','joy','care','heart'],
+  fire: ['heat','energy','light','burn','plasma','flame'],
+  code: ['syntax','loop','stack','heap','logic','debug'],
+  space: ['void','mass','orbit','dark','light','warp'],
+  brain: ['synapse','axon','dendrite','cortex','theta','soma'],
+};
+
+function updateTokens(word, conf) {
+  const key = word.toLowerCase();
+  const pool = associations[key] || associations.default;
+  const shuffled = [...pool].sort(()=>Math.random()-0.5).slice(0,4);
+  const row = document.getElementById('output-row');
+  row.innerHTML = '';
+  shuffled.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'token';
+    el.textContent = t;
+    row.appendChild(el);
+    setTimeout(() => el.classList.add('active'), i * 150 + 200);
+  });
+}
+
+// Input handler
+const input = document.getElementById('word-input');
+let debounce;
+input.addEventListener('input', () => {
+  clearTimeout(debounce);
+  const val = input.value.trim();
+  if (val.length > 0) {
+    debounce = setTimeout(() => triggerThinking(val), 300);
+  }
+});
+
+// Draw loop
+let frame = 0;
+function draw() {
+  requestAnimationFrame(draw);
+  frame++;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(0,245,212,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Draw edges
+  edges.forEach(e => {
+    const a = nodes[e.from], b = nodes[e.to];
+    if (!a || !b) return;
+    const alpha = 0.04 + e.active * 0.5;
+    const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+    grad.addColorStop(0, `rgba(0,245,212,${alpha})`);
+    grad.addColorStop(1, `rgba(100,180,255,${alpha*0.6})`);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = e.active > 0.1 ? 1.5 : 0.5;
+    ctx.stroke();
+    e.active *= 0.97;
+  });
+
+  // Draw nodes
+  nodes.forEach((n, i) => {
+    n.glow *= 0.96;
+    const isFiring = n.glow > 0.1;
+    const r = isFiring ? 8 + n.glow * 6 : 5;
+    const alpha = 0.3 + n.glow * 0.7;
+
+    if (isFiring) {
+      const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r*3);
+      grd.addColorStop(0, `rgba(0,245,212,${n.glow*0.4})`);
+      grd.addColorStop(1, 'rgba(0,245,212,0)');
+      ctx.beginPath(); ctx.arc(n.x, n.y, r*3, 0, Math.PI*2);
+      ctx.fillStyle = grd; ctx.fill();
+    }
+
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,245,212,${alpha})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(0,245,212,${0.2 + n.glow*0.5})`;
+    ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // Idle ambient pulses
+  if (frame % 180 === 0 && document.getElementById('thinking').textContent === 'Idle') {
+    const randNode = Math.floor(Math.random() * LAYERS[0]);
+    firePulse(randNode);
+  }
+}
+draw();
+</script>
+</body>
+</html>

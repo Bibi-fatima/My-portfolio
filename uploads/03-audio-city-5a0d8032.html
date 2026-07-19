@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio City · Sound Skyline</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;300;600;700&family=DM+Mono:wght@300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#03060f;overflow:hidden;cursor:none;font-family:'Barlow Condensed',sans-serif;}
+canvas{display:block;position:fixed;top:0;left:0;}
+#cursor{position:fixed;width:6px;height:6px;background:#00e5ff;border-radius:50%;pointer-events:none;z-index:999;transform:translate(-50%,-50%);}
+#overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;pointer-events:none;}
+#city-name{font-size:clamp(40px,8vw,90px);font-weight:700;letter-spacing:0.15em;color:rgba(0,229,255,0.06);text-transform:uppercase;line-height:1;margin-bottom:4px;}
+#city-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.3em;color:rgba(0,229,255,0.25);text-transform:uppercase;}
+#start-btn{pointer-events:auto;margin-top:36px;background:transparent;border:1px solid rgba(0,229,255,0.3);color:rgba(0,229,255,0.8);font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.3em;text-transform:uppercase;padding:14px 36px;border-radius:2px;cursor:none;transition:all 0.3s ease;backdrop-filter:blur(10px);}
+#start-btn:hover{background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.7);box-shadow:0 0 30px rgba(0,229,255,0.1);}
+#start-btn.hidden{opacity:0;pointer-events:none;}
+#stats-bar{position:fixed;bottom:0;left:0;right:0;height:36px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border-top:1px solid rgba(0,229,255,0.08);display:flex;align-items:center;justify-content:center;gap:48px;z-index:10;pointer-events:none;}
+.stat{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(0,229,255,0.35);text-transform:uppercase;}
+.stat span{color:rgba(0,229,255,0.8);}
+#freq-label{position:fixed;top:28px;right:40px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(0,229,255,0.3);text-align:right;z-index:10;line-height:1.8;pointer-events:none;}
+#logo{position:fixed;top:28px;left:40px;z-index:10;pointer-events:none;}
+#logo h1{font-size:11px;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.5);font-weight:300;}
+#logo p{font-size:9px;letter-spacing:0.2em;color:rgba(0,229,255,0.35);margin-top:3px;font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<canvas id="c"></canvas>
+<div id="logo"><h1>Sonic Skyline</h1><p>Audio → Architecture</p></div>
+<div id="freq-label">Bass → Towers<br>Treble → Spires<br>Volume → Light</div>
+<div id="overlay">
+  <div id="city-name">Sonic City</div>
+  <div id="city-sub">Your sound builds this world</div>
+  <button id="start-btn">Enable Microphone</button>
+</div>
+<div id="stats-bar">
+  <div class="stat">Bass <span id="s-bass">0</span> Hz</div>
+  <div class="stat">Mid <span id="s-mid">0</span> Hz</div>
+  <div class="stat">Treble <span id="s-treble">0</span> Hz</div>
+  <div class="stat">Volume <span id="s-vol">—</span> dB</div>
+  <div class="stat">Buildings <span id="s-build">48</span></div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const cur = document.getElementById('cursor');
+let W = canvas.width = innerWidth;
+let H = canvas.height = innerHeight;
+window.addEventListener('resize', () => { W=canvas.width=innerWidth; H=canvas.height=innerHeight; });
+
+document.addEventListener('mousemove', e => { cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; });
+
+let analyser, dataArray, freqData, micActive = false;
+const NUM_BARS = 48;
+const SMOOTHING = 0.82;
+let smoothed = new Float32Array(NUM_BARS).fill(0);
+let peaks = new Float32Array(NUM_BARS).fill(0);
+let peakTimers = new Float32Array(NUM_BARS).fill(0);
+let buildingColors = [];
+let buildingStyles = []; // 0=glass, 1=neon, 2=gothic
+
+// Pre-generate building aesthetic
+for (let i=0; i<NUM_BARS; i++) {
+  const t = i/NUM_BARS;
+  buildingStyles[i] = i < NUM_BARS*0.3 ? 0 : i < NUM_BARS*0.7 ? 1 : 2;
+}
+
+document.getElementById('start-btn').addEventListener('click', async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audioCtx = new AudioContext();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = SMOOTHING;
+    source.connect(analyser);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    micActive = true;
+    document.getElementById('start-btn').classList.add('hidden');
+  } catch(e) {
+    document.getElementById('start-btn').textContent = 'Mic Denied — Using Demo';
+    setTimeout(() => document.getElementById('start-btn').classList.add('hidden'), 1500);
+  }
+});
+
+// Demo mode: synthetic audio
+let demoT = 0;
+function getDemoBar(i) {
+  demoT += 0.0002;
+  const t = demoT;
+  const bass = Math.pow(Math.max(0, Math.sin(t*2.1 + i*0.1)), 2) * 0.8;
+  const mid  = Math.pow(Math.max(0, Math.sin(t*4.3 + i*0.3 + 1.2)), 2) * 0.5;
+  const treble= Math.pow(Math.max(0, Math.sin(t*9.7 + i*0.7 + 2.4)), 2) * 0.3;
+  const noise = (Math.sin(t*50+i*3.7)*0.5+0.5)*0.1;
+  const freq = i/NUM_BARS;
+  return (bass*(1-freq) + mid*(1-Math.abs(freq-0.5)*2) + treble*freq + noise)*0.85 + Math.sin(t*0.3+i*0.05)*0.05;
+}
+
+function getBarValue(i) {
+  if (!micActive) return getDemoBar(i);
+  const binCount = analyser.frequencyBinCount;
+  const step = Math.floor(binCount / NUM_BARS);
+  let sum=0;
+  for (let k=0;k<step;k++) sum+=dataArray[i*step+k];
+  return sum/(step*255);
+}
+
+// Window lights
+const windows = [];
+for (let w=0; w<600; w++) {
+  windows.push({ bx: Math.floor(Math.random()*NUM_BARS), wy: Math.random(), wx: Math.random(), lit: Math.random()>0.5, flicker: Math.random() });
+}
+
+let frame=0;
+function draw() {
+  requestAnimationFrame(draw);
+  frame++;
+
+  if (micActive && analyser) analyser.getByteFrequencyData(dataArray);
+
+  demoT += 0.001;
+
+  ctx.fillStyle = 'rgba(3,6,15,0.4)';
+  ctx.fillRect(0,0,W,H);
+
+  const barW = W / NUM_BARS;
+  const groundY = H - 36;
+  let bassSum=0, midSum=0, trebleSum=0;
+
+  for (let i=0; i<NUM_BARS; i++) {
+    const raw = getBarValue(i);
+    smoothed[i] += (raw - smoothed[i]) * 0.18;
+    const v = smoothed[i];
+
+    if (v > peaks[i]) { peaks[i]=v; peakTimers[i]=80; }
+    else if (peakTimers[i]>0) { peakTimers[i]--; if(peakTimers[i]===0) peaks[i]*=0.98; }
+    peaks[i] *= 0.998;
+
+    const bh = v * (H - 100);
+    const bx = i * barW;
+    const by = groundY - bh;
+    const style = buildingStyles[i];
+
+    // Building body
+    if (style === 0) {
+      // Glass tower
+      const grd = ctx.createLinearGradient(bx,by,bx+barW,by+bh);
+      grd.addColorStop(0, `rgba(0,180,220,${0.15+v*0.4})`);
+      grd.addColorStop(0.5, `rgba(0,229,255,${0.08+v*0.2})`);
+      grd.addColorStop(1, `rgba(0,100,160,${0.3+v*0.3})`);
+      ctx.fillStyle = grd;
+    } else if (style === 1) {
+      // Neon building
+      const grd = ctx.createLinearGradient(bx,by,bx,by+bh);
+      grd.addColorStop(0, `rgba(255,0,120,${0.1+v*0.5})`);
+      grd.addColorStop(1, `rgba(120,0,255,${0.2+v*0.3})`);
+      ctx.fillStyle = grd;
+    } else {
+      // Gothic/dark
+      const grd = ctx.createLinearGradient(bx,by,bx,by+bh);
+      grd.addColorStop(0, `rgba(60,0,120,${0.2+v*0.5})`);
+      grd.addColorStop(1, `rgba(20,0,60,${0.4})`);
+      ctx.fillStyle = grd;
+    }
+
+    ctx.fillRect(bx+1, by, barW-2, bh);
+
+    // Building edge glow
+    ctx.strokeStyle = style===0 ? `rgba(0,229,255,${v*0.6})` : style===1 ? `rgba(255,0,150,${v*0.5})` : `rgba(150,0,255,${v*0.4})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx+1, by, barW-2, bh);
+
+    // Peak line
+    if (peaks[i] > 0.05) {
+      ctx.fillStyle = style===0 ? 'rgba(0,229,255,0.9)' : style===1 ? 'rgba(255,100,200,0.9)' : 'rgba(200,100,255,0.9)';
+      ctx.fillRect(bx+1, groundY - peaks[i]*(H-100) - 2, barW-2, 2);
+    }
+
+    // Rooftop antenna
+    if (v > 0.4) {
+      const antennaH = v * 30;
+      ctx.strokeStyle = `rgba(255,255,255,${v*0.5})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bx+barW/2, by); ctx.lineTo(bx+barW/2, by-antennaH); ctx.stroke();
+      // Blinking light
+      if (Math.sin(frame*0.08 + i)*0.5+0.5 > 0.7) {
+        ctx.beginPath(); ctx.arc(bx+barW/2, by-antennaH, 2, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,50,50,0.9)'; ctx.fill();
+      }
+    }
+
+    // Windows
+    const winRows = Math.floor(bh / 14);
+    const winCols = Math.max(1, Math.floor((barW-4)/7));
+    for (let wr=0; wr<Math.min(winRows,20); wr++) {
+      for (let wc=0; wc<winCols; wc++) {
+        const wx = bx+3+wc*7, wy2 = by+4+wr*13;
+        const litProb = v * 0.9;
+        const isLit = (Math.sin(wx*wy2*0.001 + frame*0.01) > 1-litProb*2);
+        if (isLit) {
+          ctx.fillStyle = style===0 ? `rgba(150,230,255,${0.3+v*0.4})` : style===1 ? `rgba(255,200,255,${0.3+v*0.3})` : `rgba(200,150,255,${0.2+v*0.4})`;
+          ctx.fillRect(wx, wy2, 4, 8);
+        }
+      }
+    }
+
+    // Stats
+    const freq = i/NUM_BARS;
+    if (freq<0.33) bassSum+=v;
+    else if (freq<0.66) midSum+=v;
+    else trebleSum+=v;
+  }
+
+  // Ground / horizon reflection
+  const reflGrad = ctx.createLinearGradient(0,groundY,0,groundY+40);
+  reflGrad.addColorStop(0,'rgba(0,229,255,0.08)');
+  reflGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=reflGrad; ctx.fillRect(0,groundY,W,40);
+
+  // Ground line
+  ctx.strokeStyle = 'rgba(0,229,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(W,groundY); ctx.stroke();
+
+  // Stars / particles above city
+  if (frame % 3 === 0) {
+    ctx.fillStyle = `rgba(200,230,255,${Math.random()*0.4})`;
+    ctx.beginPath(); ctx.arc(Math.random()*W, Math.random()*(groundY-100), 0.8, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Scan line effect
+  for (let sy=0; sy<H; sy+=4) {
+    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    ctx.fillRect(0,sy,W,2);
+  }
+
+  // Update stats
+  if (frame%8===0) {
+    document.getElementById('s-bass').textContent = Math.round(bassSum/NUM_BARS*0.33*1000);
+    document.getElementById('s-mid').textContent = Math.round(midSum/NUM_BARS*0.33*2000);
+    document.getElementById('s-treble').textContent = Math.round(trebleSum/NUM_BARS*0.33*8000);
+    const vol = (bassSum+midSum+trebleSum)/(NUM_BARS);
+    document.getElementById('s-vol').textContent = vol>0 ? Math.round(-60+vol*60)+' dB' : '—';
+  }
+}
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Particle Storm · Photo Dissolve</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inconsolata:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a0f;overflow:hidden;cursor:none;font-family:'Inconsolata',monospace;}
+canvas{position:fixed;top:0;left:0;z-index:2;}
+#cursor{position:fixed;width:8px;height:8px;background:#e879f9;border-radius:50%;pointer-events:none;z-index:999;transform:translate(-50%,-50%);mix-blend-mode:screen;}
+#upload-screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#0d0a0f;transition:opacity 0.8s ease;}
+#upload-screen h1{font-family:'Cinzel',serif;font-size:clamp(24px,4vw,42px);letter-spacing:0.2em;color:rgba(232,121,249,0.8);text-transform:uppercase;}
+#upload-screen p{font-size:10px;letter-spacing:0.25em;color:rgba(255,255,255,0.25);text-transform:uppercase;}
+#drop-zone{
+  width:300px;height:200px;border:1px dashed rgba(232,121,249,0.3);
+  border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;cursor:pointer;transition:all 0.3s;
+  background:rgba(232,121,249,0.02);
+}
+#drop-zone:hover{border-color:rgba(232,121,249,0.7);background:rgba(232,121,249,0.05);}
+#drop-zone .icon{font-size:32px;opacity:0.5;}
+#drop-zone span{font-size:10px;letter-spacing:0.2em;color:rgba(232,121,249,0.5);text-transform:uppercase;}
+#file-input{display:none;}
+#controls{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:12px;opacity:0;transition:opacity 0.8s;pointer-events:none;}
+#controls.visible{opacity:1;pointer-events:auto;}
+.ctrl-btn{background:rgba(232,121,249,0.08);border:1px solid rgba(232,121,249,0.25);color:rgba(232,121,249,0.8);font-family:'Inconsolata',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;padding:10px 20px;cursor:none;border-radius:2px;transition:all 0.3s;}
+.ctrl-btn:hover{background:rgba(232,121,249,0.15);border-color:rgba(232,121,249,0.6);}
+#label{position:fixed;top:28px;left:40px;z-index:10;pointer-events:none;opacity:0;transition:opacity 0.8s;}
+#label.visible{opacity:1;}
+#label h1{font-family:'Cinzel',serif;font-size:14px;letter-spacing:0.3em;color:rgba(232,121,249,0.6);text-transform:uppercase;}
+#label p{font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.2);margin-top:4px;}
+#state-display{position:fixed;top:28px;right:40px;font-size:9px;letter-spacing:0.2em;color:rgba(232,121,249,0.4);text-transform:uppercase;z-index:10;pointer-events:none;opacity:0;transition:opacity 0.8s;}
+#state-display.visible{opacity:1;}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<canvas id="c"></canvas>
+<div id="upload-screen">
+  <h1>Particle Storm</h1>
+  <p>Transform your photo into living particles</p>
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="icon">⬡</div>
+    <span>Drop image here or click</span>
+    <span style="color:rgba(255,255,255,0.15);font-size:9px;">JPG · PNG · WEBP</span>
+  </div>
+  <input type="file" id="file-input" accept="image/*">
+</div>
+<div id="label"><h1>Particle Storm</h1><p>20,000 particles · live simulation</p></div>
+<div id="state-display" id="state-label">Assembled</div>
+<div id="controls">
+  <button class="ctrl-btn" id="btn-dissolve">Dissolve →</button>
+  <button class="ctrl-btn" id="btn-assemble">← Assemble</button>
+  <button class="ctrl-btn" id="btn-explode">Explode ✦</button>
+  <button class="ctrl-btn" id="btn-reset">↺ New Photo</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const cur = document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+
+const NPARTS = 20000;
+let scene, camera, renderer, particles, geo;
+let assembled = new Float32Array(NPARTS*3);
+let dissolved = new Float32Array(NPARTS*3);
+let colors    = new Float32Array(NPARTS*3);
+let currentPositions = new Float32Array(NPARTS*3);
+let velocities= new Float32Array(NPARTS*3);
+let state = 'assembled'; // assembled | dissolving | dissolved | assembling | exploded
+let imageLoaded = false;
+
+function initScene(){
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
+  camera.position.z = 160;
+  renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,canvas:document.getElementById('c')});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(currentPositions,3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(colors,3));
+
+  const mat = new THREE.PointsMaterial({size:1.2,vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,opacity:0.85,depthWrite:false});
+  particles = new THREE.Points(geo, mat);
+  scene.add(particles);
+
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+}
+initScene();
+
+function loadImageToParticles(img){
+  const offscreen = document.createElement('canvas');
+  const side = Math.min(img.width, img.height, 600);
+  offscreen.width = offscreen.height = side;
+  const oc = offscreen.getContext('2d');
+  oc.drawImage(img, (img.width-side)/2,(img.height-side)/2,side,side,0,0,side,side);
+  const data = oc.getImageData(0,0,side,side).data;
+
+  // Sample pixels for particles
+  const scale = 100 / side;
+  for(let i=0;i<NPARTS;i++){
+    const px = Math.floor(Math.random()*side), py=Math.floor(Math.random()*side);
+    const idx=(py*side+px)*4;
+    const r=data[idx]/255,g=data[idx+1]/255,b=data[idx+2]/255;
+    const lum=(r+g+b)/3;
+
+    assembled[i*3]   = (px/side - 0.5)*120;
+    assembled[i*3+1] = -(py/side - 0.5)*120;
+    assembled[i*3+2] = (lum-0.5)*20 + (Math.random()-0.5)*4;
+
+    colors[i*3]=r; colors[i*3+1]=g; colors[i*3+2]=b;
+
+    // Dissolved = random positions in a sphere
+    const theta=Math.random()*Math.PI*2, phi=Math.acos(2*Math.random()-1);
+    const rr=80+Math.random()*120;
+    dissolved[i*3]   = rr*Math.sin(phi)*Math.cos(theta);
+    dissolved[i*3+1] = rr*Math.sin(phi)*Math.sin(theta);
+    dissolved[i*3+2] = rr*Math.cos(phi);
+
+    currentPositions[i*3]  =assembled[i*3];
+    currentPositions[i*3+1]=assembled[i*3+1];
+    currentPositions[i*3+2]=assembled[i*3+2];
+  }
+  geo.attributes.position.needsUpdate=true;
+  geo.attributes.color.needsUpdate=true;
+  imageLoaded=true;
+}
+
+// File handling
+function handleFile(file){
+  if(!file||!file.type.startsWith('image/')) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      document.getElementById('upload-screen').style.opacity='0';
+      setTimeout(()=>{document.getElementById('upload-screen').style.display='none';},800);
+      document.getElementById('label').classList.add('visible');
+      document.getElementById('state-display').classList.add('visible');
+      document.getElementById('controls').classList.add('visible');
+      loadImageToParticles(img);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+document.getElementById('file-input').addEventListener('change',e=>handleFile(e.target.files[0]));
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='rgba(232,121,249,0.8)';});
+dz.addEventListener('dragleave',()=>{dz.style.borderColor='rgba(232,121,249,0.3)';});
+dz.addEventListener('drop',e=>{e.preventDefault();handleFile(e.dataTransfer.files[0]);});
+
+// Controls
+document.getElementById('btn-dissolve').addEventListener('click',()=>{if(imageLoaded)setState('dissolving');});
+document.getElementById('btn-assemble').addEventListener('click',()=>{if(imageLoaded)setState('assembling');});
+document.getElementById('btn-explode').addEventListener('click',()=>{if(imageLoaded)explode();});
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  document.getElementById('upload-screen').style.display='flex';
+  setTimeout(()=>document.getElementById('upload-screen').style.opacity='1',10);
+  imageLoaded=false;
+});
+
+function setState(s){
+  state=s;
+  document.getElementById('state-display').textContent = {dissolving:'Dissolving...',assembled:'Assembled',dissolved:'Storm',assembling:'Assembling...',exploded:'Exploded'}[s]||s;
+}
+
+function explode(){
+  for(let i=0;i<NPARTS;i++){
+    const vx=(Math.random()-0.5)*8, vy=(Math.random()-0.5)*8, vz=(Math.random()-0.5)*8;
+    velocities[i*3]=vx; velocities[i*3+1]=vy; velocities[i*3+2]=vz;
+  }
+  setState('exploded');
+}
+
+// Mouse interaction
+let mx=0,my=0;
+document.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-0.5)*2;my=-(e.clientY/innerHeight-0.5)*2;});
+
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t+=0.005;
+  const pos=geo.attributes.position.array;
+
+  if(imageLoaded){
+    if(state==='dissolving'||state==='assembling'){
+      const target=state==='dissolving'?dissolved:assembled;
+      let done=true;
+      for(let i=0;i<NPARTS*3;i++){
+        const diff=target[i]-pos[i];
+        pos[i]+=diff*0.025;
+        if(Math.abs(diff)>0.1) done=false;
+      }
+      if(done) setState(state==='dissolving'?'dissolved':'assembled');
+    } else if(state==='dissolved'){
+      // Swirl in storm
+      for(let i=0;i<NPARTS;i++){
+        const ox=dissolved[i*3],oy=dissolved[i*3+1],oz=dissolved[i*3+2];
+        pos[i*3]   = ox+Math.sin(t+oy*0.05)*5;
+        pos[i*3+1] = oy+Math.cos(t*0.7+ox*0.05)*5;
+        pos[i*3+2] = oz+Math.sin(t*1.3+oz*0.05)*5;
+      }
+    } else if(state==='exploded'){
+      for(let i=0;i<NPARTS;i++){
+        pos[i*3]  +=velocities[i*3];
+        pos[i*3+1]+=velocities[i*3+1];
+        pos[i*3+2]+=velocities[i*3+2];
+        velocities[i*3]*=0.97; velocities[i*3+1]*=0.97; velocities[i*3+2]*=0.97;
+      }
+    }
+    geo.attributes.position.needsUpdate=true;
+  }
+
+  particles.rotation.y = t*0.05 + mx*0.3;
+  particles.rotation.x = my*0.2;
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>

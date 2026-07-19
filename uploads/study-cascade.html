@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cascade</title>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}canvas{display:block;position:fixed;top:0;left:0}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W,H,hub,nodes,edges;
+
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; build(); }
+window.addEventListener('resize',resize);
+
+function build(){
+  const cx=W/2, cy=H/2;
+  const R1=Math.min(W,H)*0.22;  // inner ring
+  const R2=Math.min(W,H)*0.42;  // outer ring
+
+  hub={x:cx,y:cy};
+  nodes=[];
+
+  // Inner ring — 5 intermediate nodes, slightly irregular
+  for(let i=0;i<5;i++){
+    const a=(i/5)*Math.PI*2 - Math.PI/2 + (i%2?0.18:-0.12);
+    const r=R1*(0.88+Math.sin(i*1.7)*0.18);
+    nodes.push({x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r, ring:1});
+  }
+  // Outer ring — 10 nodes, organic scatter
+  for(let i=0;i<10;i++){
+    const a=(i/10)*Math.PI*2 - Math.PI/2 + (i%3===0?0.22:i%3===1?-0.15:0.05);
+    const r=R2*(0.82+Math.sin(i*2.3)*0.22);
+    nodes.push({x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r, ring:2});
+  }
+
+  // Build edges: outer→inner→hub
+  edges=[];
+  // Inner nodes → hub
+  for(let i=0;i<5;i++){
+    edges.push({from:nodes[i], to:hub, normDist:0.0, isToHub:true});
+  }
+  // Outer nodes → nearest inner node
+  for(let i=0;i<10;i++){
+    const outer=nodes[5+i];
+    const innerIdx=i%5;
+    edges.push({from:outer, to:nodes[innerIdx], normDist:0.5, isToHub:false});
+    // Some outer nodes also link to adjacent inner
+    if(i%3===0) edges.push({from:outer, to:nodes[(innerIdx+1)%5], normDist:0.5, isToHub:false, faint:true});
+  }
+  // A few cross-connections between outer nodes for richness
+  for(let i=0;i<10;i+=3){
+    edges.push({from:nodes[5+i], to:nodes[5+(i+4)%10], normDist:0.5, isToHub:false, lateral:true});
+  }
+}
+
+const CYCLE=6000;
+function getP(){ return (performance.now()%CYCLE)/CYCLE; }
+function ss(t){ return t*t*(3-2*t); }
+function eo(t){ return 1-(1-t)*(1-t); }
+
+// Gaussian pulse at position along edge
+function pulseBright(edgeDist, waveFront, sigma=0.07){
+  const d=waveFront - edgeDist;
+  if(d<-sigma*2) return 0;
+  return Math.exp(-(d*d)/(2*sigma*sigma));
+}
+
+function drawEdge(e, inPulse, outPulse, hubFlare){
+  const {from,to,normDist,faint,lateral}=e;
+  // For inward: pulse travels from outer (normDist=1) toward hub (normDist=0)
+  // Edge midpoint distance from hub = normDist + 0.5*(1-normDist) = (1+normDist)/2... simplify:
+  // Just treat edge as: start=normDist, end= normDist===0?0.5:1.0
+  const edgeMid = normDist===0 ? 0.25 : 0.75; // roughly
+
+  // Inward pulse (waveFront goes 0→1 as inPulse goes 0→1, but inverted: from outer toward hub)
+  const inFront = 1 - inPulse; // pulse starts at 1.0 (outer edge) and moves to 0 (hub)
+  const inB = pulseBright(edgeMid, inFront, 0.10);
+
+  // Outward pulse
+  const outFront = outPulse;
+  const outB = pulseBright(edgeMid, outFront, 0.10);
+
+  const pulse = Math.min(1, inB + outB);
+  const baseDim = lateral ? 0.08 : faint ? 0.10 : 0.20;
+  const bright = baseDim + pulse;
+
+  ctx.strokeStyle = `rgba(210,145,25,${bright})`;
+  ctx.lineWidth = lateral ? 0.7 : faint ? 0.9 : 1.5;
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+
+  // Draw traveling pulse dot
+  if(pulse>0.08){
+    const t = e.isToHub ? (1-inPulse) : (normDist===0 ? 0.5 : outPulse);
+    const px = from.x+(to.x-from.x)*Math.min(1,Math.max(0, e.isToHub ? inPulse : outPulse));
+    const py = from.y+(to.y-from.y)*Math.min(1,Math.max(0, e.isToHub ? inPulse : outPulse));
+    const g = ctx.createRadialGradient(px,py,0,px,py,12);
+    g.addColorStop(0,`rgba(255,190,50,${pulse*0.9})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(px-12,py-12,24,24);
+  }
+}
+
+function drawNode(n, bright){
+  const r=Math.max(2.5,3.5+bright*2);
+  const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,r*4+bright*10);
+  g.addColorStop(0,`rgba(255,${185+bright*70},${40+bright*20},${0.7+bright*0.3})`);
+  g.addColorStop(0.4,`rgba(200,130,20,${0.2+bright*0.5})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(n.x-r*5-bright*10,n.y-r*5-bright*10,(r*5+bright*10)*2,(r*5+bright*10)*2);
+  ctx.fillStyle=`rgba(255,${200+bright*55},${80+bright*20},${0.85+bright*0.15})`;
+  ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); ctx.fill();
+}
+
+function drawLoop(){
+  const p=getP();
+  ctx.fillStyle='rgba(0,0,0,0.80)'; ctx.fillRect(0,0,W,H);
+
+  // Phase timing
+  // 0.00-0.13: rest
+  // 0.13-0.55: inward pulse
+  // 0.55-0.68: hub flare
+  // 0.68-0.90: outward radiate
+  // 0.90-1.00: dim rest
+
+  let inPulse=0, outPulse=0, hubFlare=0;
+  if(p<0.13){}
+  else if(p<0.55){ inPulse=ss((p-0.13)/0.42); }
+  else if(p<0.68){ inPulse=1; hubFlare=ss((p-0.55)/0.13); }
+  else if(p<0.90){ outPulse=eo((p-0.68)/0.22); hubFlare=Math.max(0,1-(p-0.68)/0.18); }
+
+  // Draw edges
+  ctx.lineCap='round';
+  for(const e of edges) drawEdge(e, inPulse, outPulse, hubFlare);
+
+  // Draw outer + inner nodes
+  for(const n of nodes){
+    const nb = n.ring===1 ? outPulse*0.5 : inPulse*0.3;
+    drawNode(n, nb);
+  }
+
+  // Draw hub — flares at climax
+  drawNode(hub, hubFlare*2.5);
+
+  requestAnimationFrame(drawLoop);
+}
+resize();
+drawLoop();
+</script>
+</body>
+</html>

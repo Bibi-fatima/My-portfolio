@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Encoder · Live Helix</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Rajdhani:wght@300;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#020b08;overflow:hidden;cursor:none;font-family:'Courier Prime',monospace;}
+#cursor{position:fixed;width:8px;height:8px;background:#39ff6e;border-radius:50%;pointer-events:none;z-index:999;transform:translate(-50%,-50%);mix-blend-mode:screen;box-shadow:0 0 16px rgba(57,255,110,0.9);}
+#cursor-ring{position:fixed;width:28px;height:28px;border:1px solid rgba(57,255,110,0.45);border-radius:50%;pointer-events:none;z-index:998;transform:translate(-50%,-50%);transition:width 0.15s,height 0.15s;}
+
+/* Header */
+#logo{position:fixed;top:28px;left:40px;z-index:10;pointer-events:none;}
+#logo h1{
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;
+  letter-spacing:0.22em;color:#39ff6e;text-transform:uppercase;
+  text-shadow:0 0 20px rgba(57,255,110,0.6), 0 0 40px rgba(57,255,110,0.2);
+}
+#logo p{
+  font-size:10px;letter-spacing:0.25em;
+  color:rgba(57,255,110,0.55);margin-top:4px;text-transform:uppercase;
+}
+
+/* Stats panel */
+#stats{
+  position:fixed;top:28px;right:40px;z-index:10;text-align:right;
+  font-family:'Courier Prime',monospace;font-size:10px;
+  letter-spacing:0.18em;line-height:2.4;pointer-events:none;text-transform:uppercase;
+}
+#stats .label{color:rgba(255,255,255,0.35);}
+#stats span{color:#39ff6e;text-shadow:0 0 10px rgba(57,255,110,0.5);}
+
+/* Input — pinned to BOTTOM CENTER */
+#ui{
+  position:fixed;bottom:36px;left:0;right:0;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  z-index:10;pointer-events:none;
+}
+#input-wrap{pointer-events:auto;}
+#dna-input{
+  background:rgba(57,255,110,0.05);
+  border:1px solid rgba(57,255,110,0.4);
+  border-radius:3px;color:#39ff6e;
+  font-family:'Rajdhani',sans-serif;font-weight:600;
+  font-size:22px;letter-spacing:0.25em;
+  padding:14px 32px;outline:none;width:380px;text-align:center;
+  text-transform:uppercase;caret-color:#39ff6e;
+  transition:border-color 0.3s,box-shadow 0.3s;
+  text-shadow:0 0 10px rgba(57,255,110,0.5);
+}
+#dna-input::placeholder{
+  color:rgba(57,255,110,0.25);font-size:14px;
+  letter-spacing:0.3em;font-weight:300;
+}
+#dna-input:focus{
+  border-color:rgba(57,255,110,0.85);
+  box-shadow:0 0 30px rgba(57,255,110,0.12), inset 0 0 20px rgba(57,255,110,0.04);
+}
+
+/* Sequence display */
+#sequence-row{
+  font-size:12px;letter-spacing:0.22em;
+  min-height:22px;display:flex;align-items:center;gap:4px;
+  flex-wrap:wrap;justify-content:center;max-width:500px;
+}
+.bp-char{
+  padding:2px 5px;border-radius:2px;font-weight:700;
+  font-family:'Rajdhani',sans-serif;font-size:13px;letter-spacing:0.1em;
+  text-shadow:0 0 8px currentColor;
+}
+
+/* Legend */
+#legend{
+  display:flex;gap:24px;padding:10px 20px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(57,255,110,0.12);
+  border-radius:30px;backdrop-filter:blur(8px);
+}
+.bp-item{
+  display:flex;align-items:center;gap:7px;
+  font-size:9px;letter-spacing:0.18em;text-transform:uppercase;
+}
+.bp-dot{width:9px;height:9px;border-radius:50%;}
+.bp-label-A{color:rgba(57,255,110,0.85);}
+.bp-label-T{color:rgba(255,107,107,0.85);}
+.bp-label-G{color:rgba(0,180,255,0.85);}
+.bp-label-C{color:rgba(255,215,0,0.85);}
+
+/* GC content bar */
+#gc-bar-wrap{
+  width:200px;height:3px;
+  background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;
+}
+#gc-bar{height:100%;background:linear-gradient(90deg,#39ff6e,#00b4ff);border-radius:2px;transition:width 0.5s ease;}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<div id="logo">
+  <h1>DNA · Encoder</h1>
+  <p>Text → Base pairs → Helix</p>
+</div>
+
+<div id="stats">
+  <div><span class="label">Pairs </span><span id="s-pairs">3</span></div>
+  <div><span class="label">GC% </span><span id="s-gc">0</span></div>
+  <div><span class="label">Rotation </span><span id="s-rot">0°</span></div>
+  <div><span class="label">Strand </span><span id="s-strand">Double</span></div>
+</div>
+
+<div id="ui">
+  <div id="sequence-row"></div>
+  <div id="gc-bar-wrap"><div id="gc-bar" style="width:0%"></div></div>
+  <div id="input-wrap">
+    <input id="dna-input" type="text" placeholder="Type your word…" maxlength="18" autocomplete="off" spellcheck="false">
+  </div>
+  <div id="legend">
+    <div class="bp-item"><div class="bp-dot" style="background:#39ff6e;box-shadow:0 0 6px #39ff6e;"></div><span class="bp-label-A">A — Adenine</span></div>
+    <div class="bp-item"><div class="bp-dot" style="background:#ff6b6b;box-shadow:0 0 6px #ff6b6b;"></div><span class="bp-label-T">T — Thymine</span></div>
+    <div class="bp-item"><div class="bp-dot" style="background:#00b4ff;box-shadow:0 0 6px #00b4ff;"></div><span class="bp-label-G">G — Guanine</span></div>
+    <div class="bp-item"><div class="bp-dot" style="background:#ffd700;box-shadow:0 0 6px #ffd700;"></div><span class="bp-label-C">C — Cytosine</span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// --- Cursor ---
+const cur = document.getElementById('cursor');
+const curR = document.getElementById('cursor-ring');
+let crx=innerWidth/2,cry=innerHeight/2;
+document.addEventListener('mousemove',e=>{
+  cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';
+  crx+=(e.clientX-crx)*0.13;cry+=(e.clientY-cry)*0.13;
+  curR.style.left=crx+'px';curR.style.top=cry+'px';
+});
+function animCR(){crx+=(parseFloat(cur.style.left||0)-crx)*0.13;cry+=(parseFloat(cur.style.top||0)-cry)*0.13;curR.style.left=crx+'px';curR.style.top=cry+'px';requestAnimationFrame(animCR);}
+animCR();
+
+// --- Three.js ---
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x020b08, 0.005);
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 1000);
+// Camera centered, looking straight at the helix
+camera.position.set(0, 0, 130);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.domElement.style.cssText='position:fixed;top:0;left:0;z-index:1;';
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// --- Background particle starfield ---
+const bgGeo = new THREE.BufferGeometry();
+const bgPts = new Float32Array(2000*3);
+for(let i=0;i<2000;i++){
+  bgPts[i*3]=(Math.random()-0.5)*600;
+  bgPts[i*3+1]=(Math.random()-0.5)*600;
+  bgPts[i*3+2]=(Math.random()-0.5)*300-80;
+}
+bgGeo.setAttribute('position',new THREE.BufferAttribute(bgPts,3));
+const bgMat=new THREE.PointsMaterial({color:0x39ff6e,size:0.5,transparent:true,opacity:0.15});
+scene.add(new THREE.Points(bgGeo,bgMat));
+
+// --- DNA Group — CENTERED at (0,0,0) ---
+let helixGroup = new THREE.Group();
+scene.add(helixGroup);
+
+// Base pair colors — brighter for high contrast
+const BP_COLORS = {
+  A: new THREE.Color(0x39ff6e), // green
+  T: new THREE.Color(0xff5555), // red
+  G: new THREE.Color(0x22ccff), // cyan-blue
+  C: new THREE.Color(0xffd700), // gold
+};
+const COMPLEMENTS = {A:'T',T:'A',G:'C',C:'G'};
+const CHAR_MAP = {};
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !?.,'.split('').forEach((c,i)=>{
+  CHAR_MAP[c]=['A','T','G','C'][i%4];
+});
+
+function buildHelix(word) {
+  // Clear previous
+  while(helixGroup.children.length) helixGroup.remove(helixGroup.children[0]);
+
+  const bases = word.toUpperCase().split('').map(c=>CHAR_MAP[c]||'A');
+  const N = bases.length;
+  const TWIST  = (Math.PI * 2) / 10; // 10 bp per full turn
+  const RISE   = 7;   // vertical rise per base pair
+  const RADIUS = 16;  // helix radius
+  const totalH = (N-1) * RISE;
+
+  let gcCount = 0;
+  const strand1Pts = [], strand2Pts = [];
+
+  bases.forEach((base, i) => {
+    const comp  = COMPLEMENTS[base];
+    const angle = i * TWIST;
+    // CENTER the helix vertically: offset so midpoint is at y=0
+    const y = i * RISE - totalH / 2;
+
+    const x1 = Math.cos(angle) * RADIUS;
+    const z1 = Math.sin(angle) * RADIUS;
+    const x2 = Math.cos(angle + Math.PI) * RADIUS;
+    const z2 = Math.sin(angle + Math.PI) * RADIUS;
+
+    strand1Pts.push(new THREE.Vector3(x1, y, z1));
+    strand2Pts.push(new THREE.Vector3(x2, y, z2));
+
+    // Base nodes — large enough to see clearly
+    [[x1,z1,base],[x2,z2,comp]].forEach(([x,z,b])=>{
+      const col = BP_COLORS[b];
+
+      // Main sphere
+      const geo = new THREE.SphereGeometry(2.2, 14, 14);
+      const mat = new THREE.MeshBasicMaterial({color:col});
+      const mesh = new THREE.Mesh(geo,mat);
+      mesh.position.set(x,y,z);
+      helixGroup.add(mesh);
+
+      // Glow halo (large, very transparent)
+      const hGeo = new THREE.SphereGeometry(4.5, 8, 8);
+      const hMat = new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.12,side:THREE.BackSide});
+      const halo = new THREE.Mesh(hGeo,hMat);
+      halo.position.set(x,y,z);
+      helixGroup.add(halo);
+
+      // Second smaller glow
+      const h2Geo = new THREE.SphereGeometry(3.2, 8, 8);
+      const h2Mat = new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.2,side:THREE.BackSide});
+      const h2 = new THREE.Mesh(h2Geo,h2Mat);
+      h2.position.set(x,y,z);
+      helixGroup.add(h2);
+    });
+
+    // Rung (base pair bridge)
+    const col1 = BP_COLORS[base].clone();
+    const col2 = BP_COLORS[comp].clone();
+    const rungPts = [
+      new THREE.Vector3(x1,y,z1),
+      new THREE.Vector3((x1+x2)/2, y, (z1+z2)/2),
+      new THREE.Vector3(x2,y,z2)
+    ];
+    // Two colored halves
+    [[rungPts[0],rungPts[1],col1],[rungPts[1],rungPts[2],col2]].forEach(([a,b,c])=>{
+      const g=new THREE.BufferGeometry().setFromPoints([a,b]);
+      const m=new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.55,linewidth:2});
+      helixGroup.add(new THREE.Line(g,m));
+    });
+
+    if(base==='G'||base==='C') gcCount++;
+  });
+
+  // Backbone tubes — bright colored, clearly visible
+  [
+    {pts:strand1Pts, col:0x39ff6e},
+    {pts:strand2Pts, col:0x22ccff},
+  ].forEach(({pts,col})=>{
+    if(pts.length<2) return;
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const tGeo  = new THREE.TubeGeometry(curve, N*4, 0.7, 6, false);
+    const tMat  = new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.6});
+    helixGroup.add(new THREE.Mesh(tGeo,tMat));
+
+    // Bright spine line on top of tube
+    const lGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    const lMat = new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.85});
+    helixGroup.add(new THREE.Line(lGeo,lMat));
+  });
+
+  // Update UI stats
+  const gc = Math.round(gcCount/N*100);
+  document.getElementById('s-pairs').textContent = N;
+  document.getElementById('s-gc').textContent = gc + '%';
+  document.getElementById('gc-bar').style.width = gc + '%';
+
+  // Sequence row
+  const bpColorHex={A:'#39ff6e',T:'#ff5555',G:'#22ccff',C:'#ffd700'};
+  const bpBg={A:'rgba(57,255,110,0.1)',T:'rgba(255,85,85,0.1)',G:'rgba(34,204,255,0.1)',C:'rgba(255,215,0,0.1)'};
+  document.getElementById('sequence-row').innerHTML = bases.map(b=>
+    `<span class="bp-char" style="color:${bpColorHex[b]};background:${bpBg[b]};border:1px solid ${bpColorHex[b]}44;">${b}</span>`
+  ).join('');
+}
+
+// --- Mouse rotation ---
+let mx=0,my=0,isDrag=false,lastX=0,lastY=0,vx=0,vy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=(e.clientX/innerWidth-0.5)*2; my=(e.clientY/innerHeight-0.5)*2;
+  if(isDrag){vx+=(e.clientY-lastY)*0.01;vy+=(e.clientX-lastX)*0.01;lastX=e.clientX;lastY=e.clientY;}
+});
+document.addEventListener('mousedown',e=>{isDrag=true;lastX=e.clientX;lastY=e.clientY;});
+document.addEventListener('mouseup',()=>isDrag=false);
+document.addEventListener('wheel',e=>{camera.position.z=Math.max(60,Math.min(260,camera.position.z+e.deltaY*0.15));},{passive:true});
+
+// --- Input ---
+const input = document.getElementById('dna-input');
+let debounce;
+input.addEventListener('input',()=>{
+  clearTimeout(debounce);
+  const v = input.value.trim()||'DNA';
+  debounce = setTimeout(()=>buildHelix(v),180);
+});
+
+buildHelix('DNA');
+
+// --- Render loop ---
+let t=0,frame=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t+=0.006; frame++;
+
+  vx*=0.92; vy*=0.92;
+  rx+=vx; ry+=vy;
+
+  // Auto-rotate around Y axis, mouse tilts X
+  helixGroup.rotation.y = t * 0.5 + ry + mx * 0.8;
+  helixGroup.rotation.x = rx * 0.3 + my * 0.25;
+
+  // Keep helix perfectly centered — no position drift
+  helixGroup.position.set(0, 0, 0);
+
+  if(frame%8===0){
+    const deg = Math.round(((t*0.5)%(Math.PI*2))/(Math.PI*2)*360);
+    document.getElementById('s-rot').textContent = deg + '°';
+  }
+
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
