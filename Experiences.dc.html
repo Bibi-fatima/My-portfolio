@@ -377,6 +377,19 @@ class Component extends DCLogic {
         if (video) video.pause();
       });
     });
+    // Desktop: preload video src as card enters viewport so hover plays instantly
+    if (!isMobile && 'IntersectionObserver' in window) {
+      const preloadIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const vid = e.target.querySelector('.card-video');
+            if (vid && !vid.src && vid.dataset.src) { vid.src = vid.dataset.src; vid.load(); }
+            preloadIO.unobserve(e.target);
+          }
+        });
+      }, { rootMargin: '200px 0px' });
+      this.qa('.work-card').forEach((card) => preloadIO.observe(card));
+    }
     // Mobile: load + play videos only when visible, pause when off-screen
     if (isMobile || 'ontouchstart' in window) {
       const vidIO = new IntersectionObserver((entries) => {
