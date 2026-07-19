@@ -346,12 +346,11 @@ class Component extends DCLogic {
     this.qa('.work-card').forEach((card) => {
       const vid = card.querySelector('video');
       if (vid) {
-        const src = vid.getAttribute('src') || '';
+        const src = vid.getAttribute('data-src') || vid.getAttribute('src') || '';
         const key = Object.keys(videoToExp).find(k => src.includes(k));
         if (key) {
           const expId = videoToExp[key];
-          card.href = './ExperienceDetail.dc.html';
-          card.addEventListener('click', () => localStorage.setItem('exp_id', expId));
+          card.href = './ExperienceDetail.dc.html?exp=' + expId;
         }
       }
     });
@@ -364,7 +363,7 @@ class Component extends DCLogic {
         card.style.borderColor = 'transparent';
         card.style.borderStyle = 'solid';
         if (media) media.style.transform = 'scale(1.05)';
-        if (video) video.play().catch(() => {});
+        if (video) { if (!video.src && video.dataset.src) video.src = video.dataset.src; video.play().catch(() => {}); }
       });
       card.addEventListener('mouseleave', () => {
         card.style.borderColor = 'var(--stroke2)';
@@ -372,6 +371,12 @@ class Component extends DCLogic {
         if (media) media.style.transform = 'scale(1)';
         if (video) video.pause();
       });
+      // Mobile: load video on first touch for faster subsequent play
+      if ('ontouchstart' in window) {
+        card.addEventListener('touchstart', () => {
+          if (video && !video.src && video.dataset.src) { video.src = video.dataset.src; video.load(); }
+        }, { once: true, passive: true });
+      }
     });
 
     // Navbar shadow

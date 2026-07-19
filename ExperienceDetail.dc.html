@@ -144,7 +144,7 @@
   <section style="position:relative;overflow:hidden;padding:clamp(40px,6vw,64px) 20px clamp(56px,8vw,90px);border-top:1px solid var(--stroke)">
     <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
       <a id="nextExpBtn" href="./ExperienceDetail.dc.html" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--stroke2);font-size:13px;padding:11px 20px;color:var(--text);transition:all .25s var(--ease)"><span style="font-family:'Instrument Serif',serif;font-style:italic">Next experience</span> <span style="font-size:12px">→</span></a>
-      <a href="/cdn-cgi/l/email-protection#afcdc6cdc6c9c1ceced59c98efc8c2cec6c381ccc0c2" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
+      <a href="/cdn-cgi/l/email-protection#e7858e858e818986869dd4d0a7808a868e8bc984888a" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
     </div>
   </section>
 
@@ -197,7 +197,7 @@ class Component extends DCLogic {
       setTimeout(() => revealEls.forEach(show), 4000);
     }
 
-    const expId = (typeof localStorage !== 'undefined' && localStorage.getItem('exp_id')) || 'blackhole';
+    const expId = new URLSearchParams(window.location.search).get('exp') || 'blackhole';
     const exp = this.getExperiences()[expId] || this.getExperiences().blackhole;
     const frame = document.getElementById('simFrame');
     if (frame && exp.embedSrc) {
@@ -222,11 +222,10 @@ class Component extends DCLogic {
     if (nextBtn) {
       nextBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const cur = (typeof localStorage !== 'undefined' && localStorage.getItem('exp_id')) || 'blackhole';
+        const cur = new URLSearchParams(window.location.search).get('exp') || 'blackhole';
         const idx = order.indexOf(cur);
         const next = order[(idx + 1) % order.length];
-        localStorage.setItem('exp_id', next);
-        window.location.href = './ExperienceDetail.dc.html';
+        window.location.href = './ExperienceDetail.dc.html?exp=' + next;
       });
     }
   }
@@ -248,7 +247,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const exps = this.getExperiences();
-    const expId = (typeof localStorage !== 'undefined' && localStorage.getItem('exp_id')) || 'blackhole';
+    const expId = new URLSearchParams(window.location.search).get('exp') || 'blackhole';
     const exp = exps[expId] || exps.blackhole;
     const embedSrc = exp.embedSrc || '';
     return {
