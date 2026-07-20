@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Floral Language Lab</title>
     <style>
         /* ==========================================================================
@@ -504,6 +504,7 @@
             initEcosystem();
         };
         window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 
         const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
         const mapRange = (val, in_min, in_max, out_min, out_max) => (val - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -1050,7 +1051,7 @@
         const startRender = () => {
             if (canvas.clientWidth > 0 && canvas.clientHeight > 0 && !renderStarted) {
                 renderStarted = true;
-                resize();
+                applyResize();
                 requestAnimationFrame(render);
             }
         };
