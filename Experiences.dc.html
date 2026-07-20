@@ -41,6 +41,7 @@
   @keyframes drift1{0%{transform:translate(0,0)}50%{transform:translate(6vw,4vh)}100%{transform:translate(0,0)}}
   @keyframes drift2{0%{transform:translate(0,0)}50%{transform:translate(-5vw,-3vh)}100%{transform:translate(0,0)}}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+  @media (max-width:1023px){[data-desktop-only]{display:none!important}}
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
     html{scroll-behavior:auto}
@@ -152,8 +153,8 @@
           <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text)">View experience <span style="font-size:11px">→</span></span>
         </span>
       </a>
-      <!-- Card 5 -->
-      <a data-reveal="" data-cat="Human-centered Projects" href="#grid" class="work-card" style="opacity:0;transform:translateY(30px);transition:opacity .9s var(--ease) .2s,transform .9s var(--ease) .2s;position:relative;border-radius:26px;overflow:hidden;border:1px dashed var(--stroke2);background:var(--surface);aspect-ratio:4/3;max-height:420px;display:flex;flex-direction:column">
+      <!-- Card 5 — desktop only -->
+      <a data-reveal="" data-cat="Human-centered Projects" data-desktop-only="true" href="#grid" class="work-card" style="opacity:0;transform:translateY(30px);transition:opacity .9s var(--ease) .2s,transform .9s var(--ease) .2s;position:relative;border-radius:26px;overflow:hidden;border:1px dashed var(--stroke2);background:var(--surface);aspect-ratio:4/3;max-height:420px;display:flex;flex-direction:column">
         <span class="work-media" style="position:absolute;inset:0;transition:transform .6s var(--ease)"><video class="card-video" data-src="https://res.cloudinary.com/j2qoqc9s/video/upload/v1784446690/card-floral_vwupya.mp4" muted="" loop="" playsinline="" preload="none" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video><span style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,10,.82) 0%,rgba(10,10,10,.45) 55%,rgba(10,10,10,.08) 100%);pointer-events:none"></span></span>
         <span style="position:absolute;top:20px;left:20px;right:20px;z-index:1;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)">Human-centered Projects</span>
         <span style="position:absolute;bottom:0;left:0;right:0;z-index:1;padding:0 20px 22px;display:flex;flex-direction:column;gap:14px">
