@@ -1051,7 +1051,7 @@
         const startRender = () => {
             if (canvas.clientWidth > 0 && canvas.clientHeight > 0 && !renderStarted) {
                 renderStarted = true;
-                applyResize();
+                resize();
                 requestAnimationFrame(render);
             }
         };
