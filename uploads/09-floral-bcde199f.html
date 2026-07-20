@@ -492,9 +492,10 @@
         
         let width, height;
         const resize = () => {
-            const parent = canvas.parentElement;
-            width = canvas.clientWidth || parent?.clientWidth || parent?.offsetWidth || 800;
-            height = canvas.clientHeight || parent?.clientHeight || parent?.offsetHeight || 600;
+            // Use window dimensions directly — reading canvas.clientWidth inside a CSS grid
+            // can return stale portrait values on mobile after orientation change.
+            width = window.innerWidth || document.documentElement.clientWidth || 800;
+            height = window.innerHeight || document.documentElement.clientHeight || 600;
             // Handle high-DPI displays
             const dpr = window.devicePixelRatio || 1;
             canvas.width = width * dpr;
