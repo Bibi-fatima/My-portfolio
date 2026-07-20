@@ -149,7 +149,7 @@
   <section style="position:relative;overflow:hidden;padding:clamp(40px,6vw,64px) 20px clamp(56px,8vw,90px);border-top:1px solid var(--stroke)">
     <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
       <a id="nextExpBtn" href="./ExperienceDetail.dc.html" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--stroke2);font-size:13px;padding:11px 20px;color:var(--text);transition:all .25s var(--ease)"><span style="font-family:'Instrument Serif',serif;font-style:italic">Next experience</span> <span style="font-size:12px">→</span></a>
-      <a href="/cdn-cgi/l/email-protection#35575c575c535b54544f0602755258545c591b565a58" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
+      <a href="/cdn-cgi/l/email-protection#15777c777c737b74746f2622557278747c793b767a78" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
     </div>
   </section>
 
@@ -252,7 +252,28 @@ class Component extends DCLogic {
       newFrame.scrolling = 'yes';
       newFrame.allow = 'microphone *; camera *; autoplay *; display-capture *';
       newFrame.style.cssText = 'width:100%;height:100%;border:0;flex:1;display:block';
-      newFrame.addEventListener('load', () => { fireResizeOn(newFrame); injectTouchBridge(newFrame); }, { once: true });
+      newFrame.addEventListener('load', () => {
+        fireResizeOn(newFrame);
+        injectTouchBridge(newFrame);
+        // For Floral (CSS grid layout): inject a script that forces body to landscape dims
+        // and fires resize repeatedly over 3 seconds to ensure grid fully reflows
+        try {
+          const doc = newFrame.contentDocument || newFrame.contentWindow.document;
+          const s = doc.createElement('script');
+          s.textContent = `(function(){
+            const vw = window.screen && window.screen.availWidth > window.screen.availHeight
+              ? Math.max(window.screen.availWidth, window.outerWidth) : window.outerWidth || window.innerWidth;
+            const vh = window.screen && window.screen.availWidth > window.screen.availHeight
+              ? Math.min(window.screen.availHeight, window.outerHeight) : window.outerHeight || window.innerHeight;
+            document.documentElement.style.width = vw + 'px';
+            document.documentElement.style.height = vh + 'px';
+            document.body.style.width = vw + 'px';
+            document.body.style.height = vh + 'px';
+            [50,200,500,900,1400,2200].forEach(d => setTimeout(() => window.dispatchEvent(new Event('resize')), d));
+          })()`;
+          doc.head.appendChild(s);
+        } catch(e) {}
+      }, { once: true });
 
       fsEl.appendChild(btn);
       fsEl.appendChild(newFrame);
