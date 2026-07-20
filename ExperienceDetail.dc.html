@@ -149,7 +149,7 @@
   <section style="position:relative;overflow:hidden;padding:clamp(40px,6vw,64px) 20px clamp(56px,8vw,90px);border-top:1px solid var(--stroke)">
     <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
       <a id="nextExpBtn" href="./ExperienceDetail.dc.html" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--stroke2);font-size:13px;padding:11px 20px;color:var(--text);transition:all .25s var(--ease)"><span style="font-family:'Instrument Serif',serif;font-style:italic">Next experience</span> <span style="font-size:12px">→</span></a>
-      <a href="/cdn-cgi/l/email-protection#15777c777c737b74746f2622557278747c793b767a78" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
+      <a href="/cdn-cgi/l/email-protection#bddfd4dfd4dbd3dcdcc78e8afddad0dcd4d193ded2d0" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
     </div>
   </section>
 
@@ -285,9 +285,14 @@ class Component extends DCLogic {
       if (isPortrait()) { exitFullscreen(); } else { enterFullscreen(); }
     };
 
-    if (isMobile) {
-      applyOrientation();
-      if (screen.orientation) {
+    if (isMobile && expId === 'floral') {
+      if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.gap = '20px';
+        overlay.innerHTML = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" style="opacity:.6"><rect x="4" y="10" width="40" height="28" rx="3" stroke="#4FB6A5" stroke-width="2"/><rect x="18" y="38" width="12" height="3" rx="1" fill="#4FB6A5" opacity=".5"/><rect x="14" y="41" width="20" height="2" rx="1" fill="#4FB6A5" opacity=".3"/></svg><p style="font-size:15px;color:var(--muted);line-height:1.5;max-width:260px;text-align:center">Floral Language Lab is best experienced on a laptop or desktop — open it there for the full simulation.</p><a href="./Experiences.dc.html" style="font-size:13px;color:var(--accent1);border:1px solid var(--accent1);border-radius:999px;padding:9px 18px;text-decoration:none">← Back to experiences</a>';
+      }
+    } else if (isMobile) {
         screen.orientation.addEventListener('change', () => setTimeout(applyOrientation, 120));
       }
       window.addEventListener('resize', () => setTimeout(applyOrientation, 120), { passive: true });
