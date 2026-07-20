@@ -149,7 +149,7 @@
   <section style="position:relative;overflow:hidden;padding:clamp(40px,6vw,64px) 20px clamp(56px,8vw,90px);border-top:1px solid var(--stroke)">
     <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
       <a id="nextExpBtn" href="./ExperienceDetail.dc.html" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--stroke2);font-size:13px;padding:11px 20px;color:var(--text);transition:all .25s var(--ease)"><span style="font-family:'Instrument Serif',serif;font-style:italic">Next experience</span> <span style="font-size:12px">→</span></a>
-      <a href="/cdn-cgi/l/email-protection#3b595259525d555a5a41080c7b5c565a525715585456" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
+      <a href="/cdn-cgi/l/email-protection#35575c575c535b54544f0602755258545c591b565a58" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
     </div>
   </section>
 
@@ -215,8 +215,9 @@ class Component extends DCLogic {
     let fsEl = null;
 
     const fireResizeOn = (f) => {
-      setTimeout(() => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, 200);
-      setTimeout(() => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, 700);
+      [200, 500, 900, 1400, 2000].forEach(delay => {
+        setTimeout(() => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, delay);
+      });
     };
 
     const injectTouchBridge = (f) => {
