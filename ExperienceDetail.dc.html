@@ -84,13 +84,17 @@
 
   <!-- ================= LIVE EXPERIENCE (media) ================= -->
   <section style="max-width:1400px;margin:0 auto;padding:0 clamp(12px,2vw,32px) clamp(50px,8vw,80px)">
-    <div data-reveal="" style="opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease);border-radius:28px;overflow:hidden;border:1px solid var(--stroke);background:var(--surface);height:90vh">
+    <div id="embed-wrap" data-reveal="" style="opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease);border-radius:28px;overflow:hidden;border:1px solid var(--stroke);background:var(--surface);height:90vh;position:relative">
+
+      <div id="orient-overlay" style="display:none;position:absolute;inset:0;z-index:10;background:var(--surface);flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:32px">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:.7"><rect x="16" y="8" width="24" height="36" rx="4" stroke="#4FB6A5" stroke-width="2"/><path d="M36 4l6 6-6 6" stroke="#4FB6A5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 10H38" stroke="#4FB6A5" stroke-width="2" stroke-linecap="round"/></svg>
+        <p style="font-size:15px;color:var(--muted);line-height:1.5;max-width:240px">Rotate your device for the best experience</p>
+      </div>
 
       <iframe id="simFrame" title="Live experience" scrolling="yes" style="width:100%;height:100%;border:0;display:block" allow="microphone *; camera *; autoplay *; display-capture *"></iframe>
 
     </div>
-      
-    <p style="margin-top:14px;font-size:12.5px;color:var(--muted);text-align:center">This is the live experience for this project. Best explored on a laptop or tablet — these simulations are built for mouse and keyboard.</p>
+    <p style="margin-top:14px;font-size:12.5px;color:var(--muted);text-align:center">Every experience here is live and explorable. This is the live experience for this project.</p>
   </section>
 
   <!-- ================= WRITE-UP ================= -->
@@ -145,7 +149,7 @@
   <section style="position:relative;overflow:hidden;padding:clamp(40px,6vw,64px) 20px clamp(56px,8vw,90px);border-top:1px solid var(--stroke)">
     <div data-reveal="" style="opacity:0;transform:translateY(20px);transition:opacity .9s var(--ease),transform .9s var(--ease);max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
       <a id="nextExpBtn" href="./ExperienceDetail.dc.html" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--stroke2);font-size:13px;padding:11px 20px;color:var(--text);transition:all .25s var(--ease)"><span style="font-family:'Instrument Serif',serif;font-style:italic">Next experience</span> <span style="font-size:12px">→</span></a>
-      <a href="/cdn-cgi/l/email-protection#8fede6ede6e9e1eeeef5bcb8cfe8e2eee6e3a1ece0e2" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
+      <a href="/cdn-cgi/l/email-protection#a5c7ccc7ccc3cbc4c4df9692e5c2c8c4ccc98bc6cac8" onClick="{{ openEmail }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13.5px;font-weight:500;padding:12px 22px;transition:transform .25s var(--ease)">Have an idea like this? Get in touch <span style="font-size:11px">↗</span></a>
     </div>
   </section>
 
@@ -205,7 +209,51 @@ class Component extends DCLogic {
     const expId = new URLSearchParams(window.location.search).get('exp') || 'blackhole';
     const exp = this.getExperiences()[expId] || this.getExperiences().blackhole;
     const frame = document.getElementById('simFrame');
-    if (frame && exp.embedSrc) {
+    const overlay = document.getElementById('orient-overlay');
+    const embedWrap = document.getElementById('embed-wrap');
+    let srcLoaded = false;
+
+    const isPortrait = () => window.innerHeight > window.innerWidth;
+
+    const loadFrame = () => {
+      if (!srcLoaded && exp.embedSrc) {
+        srcLoaded = true;
+        frame.setAttribute('src', exp.embedSrc);
+      }
+    };
+
+    const applyOrientation = () => {
+      if (!isMobile) return;
+      if (isPortrait()) {
+        if (overlay) { overlay.style.display = 'flex'; }
+        if (frame) { frame.style.visibility = 'hidden'; }
+      } else {
+        if (overlay) { overlay.style.display = 'none'; }
+        if (frame) { frame.style.visibility = 'visible'; }
+        loadFrame();
+        // Give the browser one frame to settle real landscape dimensions, then fire resize
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            try { frame.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
+          }, 150);
+          setTimeout(() => {
+            try { frame.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
+          }, 600);
+        });
+      }
+    };
+
+    if (isMobile) {
+      applyOrientation();
+      window.addEventListener('resize', applyOrientation, { passive: true });
+      if (screen.orientation) {
+        screen.orientation.addEventListener('change', applyOrientation);
+      } else {
+        window.addEventListener('orientationchange', applyOrientation, { passive: true });
+      }
+    }
+
+    if (frame && exp.embedSrc && !isMobile) {
       frame.setAttribute('src', exp.embedSrc);
       frame.addEventListener('load', () => {
         setTimeout(() => {
